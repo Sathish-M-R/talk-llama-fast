@@ -24,14 +24,15 @@ NOTES:
 Everything is running on 3060 12 GB vram, but i guess you can try with 8 GB. You can try to use CPU instead of GPU, but it will be slow.
 
 
-I uploaded modified cpp files, but they still have some hardcoded paths (TODO, c:\\DATA\\LLM\\xtts\\xtts_play_allowed.txt), so i guess they won't work if you don't modify them manually
+I uploaded modified cpp files, but they still have some hardcoded paths (TODO), so i guess they won't work if you don't modify them manually
 
-I uploaded win64 exe and bat files in realeses. You can try, but it still have some hardcoded paths (TODO)
+I uploaded win64 exe and bat files in realeses. You can try, i don't know if they work, AND it still have some hardcoded paths (TODO, c:\\DATA\\LLM\\xtts\\xtts_play_allowed.txt)
 
 Google search server is based on langchain google-serp, i will upload source code later.
 
 
 [OTHER FILES fixes]
+
 xtts better coma handling:
 
 c:\Users\[username]\miniconda3\Lib\site-packages\stream2sentence\stream2sentence.py

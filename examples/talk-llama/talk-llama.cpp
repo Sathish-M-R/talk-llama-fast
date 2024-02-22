@@ -3,6 +3,8 @@
 
 #include "common-sdl.h"
 #include "common.h"
+#include "console.h"
+#include "console.cpp"
 #include "whisper.h"
 #include "llama.h"
 
@@ -15,6 +17,31 @@
 #include <vector>
 #include <regex>
 #include <sstream>
+
+#include <iostream>
+
+#include <algorithm> 
+#include <cctype>
+#include <locale>
+#include <codecvt>
+
+
+
+#include <winsock2.h>
+#include <windows.h>
+#include <sys/types.h>
+#pragma comment(lib,"ws2_32.lib")
+
+
+
+#include <clocale>
+#include <curl/curl.h>
+#include <unordered_set>
+#include <ctype.h>
+#include <map>
+#include <iterator>
+#include <ctime>
+
 
 std::vector<llama_token> llama_tokenize(struct llama_context * ctx, const std::string & text, bool add_bos) {
     auto * model = llama_get_model(ctx);
@@ -57,6 +84,7 @@ struct whisper_params {
     int32_t n_gpu_layers = 999;
 
     float vad_thold  = 0.6f;
+    float vad_last_ms  = 1250;
     float freq_thold = 100.0f;
 
     bool speed_up       = false;
@@ -78,11 +106,17 @@ struct whisper_params {
     std::string prompt      = "";
     std::string fname_out;
     std::string path_session = "";       // path to file for saving/loading model eval state
+    int32_t ctx_size = 2048;      
+    int32_t n_predict = 64;      
+    float temp = 0.9;      
+    float top_k = 40;      
+    float top_p = 1.0f;      
+    float repeat_penalty = 1.10;   
 };
 
-void whisper_print_usage(int argc, char ** argv, const whisper_params & params);
+void whisper_print_usage(int argc, const char ** argv, const whisper_params & params);
 
-bool whisper_params_parse(int argc, char ** argv, whisper_params & params) {
+bool whisper_params_parse(int argc, const char ** argv, whisper_params & params) {
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
 
@@ -97,6 +131,7 @@ bool whisper_params_parse(int argc, char ** argv, whisper_params & params) {
         else if (arg == "-ac"  || arg == "--audio-ctx")      { params.audio_ctx      = std::stoi(argv[++i]); }
         else if (arg == "-ngl" || arg == "--n-gpu-layers")   { params.n_gpu_layers   = std::stoi(argv[++i]); }
         else if (arg == "-vth" || arg == "--vad-thold")      { params.vad_thold      = std::stof(argv[++i]); }
+        else if (arg == "-vlm" || arg == "--vad-last-ms")    { params.vad_last_ms    = std::stoi(argv[++i]); }
         else if (arg == "-fth" || arg == "--freq-thold")     { params.freq_thold     = std::stof(argv[++i]); }
         else if (arg == "-su"  || arg == "--speed-up")       { params.speed_up       = true; }
         else if (arg == "-tr"  || arg == "--translate")      { params.translate      = true; }
@@ -113,6 +148,12 @@ bool whisper_params_parse(int argc, char ** argv, whisper_params & params) {
         else if (arg == "-mw"  || arg == "--model-whisper")  { params.model_wsp      = argv[++i]; }
         else if (arg == "-ml"  || arg == "--model-llama")    { params.model_llama    = argv[++i]; }
         else if (arg == "-s"   || arg == "--speak")          { params.speak          = argv[++i]; }
+        else if (arg == "--ctx_size")                        { params.ctx_size       = std::stoi(argv[++i]); }
+        else if (arg == "-n"   || arg == "--n_predict")      { params.n_predict      = std::stoi(argv[++i]); }
+        else if (arg == "--temp")     						 { params.temp           = std::stof(argv[++i]); }
+        else if (arg == "--top_k")     						 { params.top_k          = std::stof(argv[++i]); }
+        else if (arg == "--top_p")     						 { params.top_p          = std::stof(argv[++i]); }
+        else if (arg == "--repeat_penalty")     			 { params.repeat_penalty = std::stof(argv[++i]); }
         else if (arg == "--prompt-file")                     {
             std::ifstream file(argv[++i]);
             std::copy(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), back_inserter(params.prompt));
@@ -132,7 +173,7 @@ bool whisper_params_parse(int argc, char ** argv, whisper_params & params) {
     return true;
 }
 
-void whisper_print_usage(int /*argc*/, char ** argv, const whisper_params & params) {
+void whisper_print_usage(int /*argc*/, const char ** argv, const whisper_params & params) {
     fprintf(stderr, "\n");
     fprintf(stderr, "usage: %s [options]\n", argv[0]);
     fprintf(stderr, "\n");
@@ -145,6 +186,7 @@ void whisper_print_usage(int /*argc*/, char ** argv, const whisper_params & para
     fprintf(stderr, "  -ac N,    --audio-ctx N    [%-7d] audio context size (0 - all)\n",                params.audio_ctx);
     fprintf(stderr, "  -ngl N,   --n-gpu-layers N [%-7d] number of layers to store in VRAM\n",           params.n_gpu_layers);
     fprintf(stderr, "  -vth N,   --vad-thold N    [%-7.2f] voice activity detection threshold\n",        params.vad_thold);
+    fprintf(stderr, "  -vlm N,   --vad-last-ms N  [%-7d] vad min silence after speech, ms\n",       	 params.vad_last_ms);
     fprintf(stderr, "  -fth N,   --freq-thold N   [%-7.2f] high-pass frequency cutoff\n",                params.freq_thold);
     fprintf(stderr, "  -su,      --speed-up       [%-7s] speed up audio by x2 (reduced accuracy)\n",     params.speed_up ? "true" : "false");
     fprintf(stderr, "  -tr,      --translate      [%-7s] translate from source language to english\n",   params.translate ? "true" : "false");
@@ -163,6 +205,12 @@ void whisper_print_usage(int /*argc*/, char ** argv, const whisper_params & para
     fprintf(stderr, "  --prompt-file FNAME        [%-7s] file with custom prompt to start dialog\n",     "");
     fprintf(stderr, "  --session FNAME                   file to cache model state in (may be large!) (default: none)\n");
     fprintf(stderr, "  -f FNAME, --file FNAME     [%-7s] text output file name\n",                       params.fname_out.c_str());
+    fprintf(stderr, "   --ctx_size N              [%-7d] Size of the prompt context\n",                  params.ctx_size);
+    fprintf(stderr, "  -n N, --n_predict N        [%-7d] Number of tokens to predict\n",                 params.n_predict);
+    fprintf(stderr, "  --temp N                   [%-7.2f] Temperature \n",                              params.temp);
+    fprintf(stderr, "  --top_k N                  [%-7.2f] top_k \n",                                    params.top_k);
+    fprintf(stderr, "  --top_p N                  [%-7.2f] top_p \n",                                    params.top_p);
+    fprintf(stderr, "  --repeat_penalty N         [%-7.2f] repeat_penalty \n",                           params.repeat_penalty);
     fprintf(stderr, "\n");
 }
 
@@ -230,7 +278,12 @@ std::string transcribe(
 
     const auto t_end = std::chrono::high_resolution_clock::now();
     t_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
-
+	
+	// print hex
+	//printf("whisper result:\n");
+	//for (char ch : result) printf("%X ", ch);
+	//printf("\n\n");
+				
     return result;
 }
 
@@ -246,6 +299,443 @@ std::vector<std::string> get_words(const std::string &txt) {
     return words;
 }
 
+
+// @path full path to c:\\DATA\\LLM\\xtts\\xtts_play_allowed.txt
+// @xtts_play_allowed: 0=dont play xtts, 1=xtts can play
+void allow_xtts_file(std::string path, int xtts_play_allowed) {
+    try{                                  
+        const std::string fileName{path};
+        std::ifstream readStream{fileName};
+		std::string singleLine;
+		bool doesExistAndIsReadable{readStream.good()};
+		
+		if(!doesExistAndIsReadable){
+			printf("%s file not found", path.c_str());
+		}
+		
+		std::getline(readStream, singleLine);
+		readStream.close();
+		int stored_value = stoi(singleLine);
+		if (stored_value != xtts_play_allowed)
+		{
+			std::ofstream writeStream{fileName};
+			writeStream << xtts_play_allowed;
+			writeStream.flush();
+			writeStream.close();
+			//printf("  written to file: %d\n", xtts_play_allowed);
+		}
+    } catch(...) {                          // exception handler
+    }
+}
+
+// trim from start (in place)
+inline void ltrim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }));
+}
+
+// trim from end (in place)
+inline void rtrim(std::string &s) {
+    s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+        return !std::isspace(ch);
+    }).base(), s.end());
+}
+
+// trim from both ends (in place)
+inline void trim(std::string &s) {
+    rtrim(s);
+    ltrim(s);
+}
+
+bool IsPunctuationMark(char c) {
+    switch (static_cast<unsigned char>(c)) {
+        case ',':
+            [[fallthrough]];
+        case '.':
+            [[fallthrough]];
+        case '?':
+            return true;
+		case ':':
+            return true;
+		case '!':
+            return true;	
+        default:
+            return false;
+    }
+}
+
+std::string StripPunctuationMarks(const std::string& text) {
+    std::string cleanText;
+    for (const auto& c : text) {
+        if (!IsPunctuationMark(c)) {
+           cleanText += c;
+        }
+    }
+    return cleanText;
+}
+
+std::string LowerCase(const std::string& text) {
+    std::string lowerCasedText;
+    for (const auto& c : text) {
+        lowerCasedText += std::tolower(c, std::locale());
+    }
+    return lowerCasedText;
+}
+
+std::string ParseCommandAndGetKeyword(const std::string& textHeardTrimmed) {
+    static const std::unordered_set<std::string> prefixNeedles{"google",  "google please", "please google", "can you google", "can you google", "Погугли", "По гугле", "угли", "углe", "По гугле пожалуйста", "По угли пожалуйста"};
+    std::string sanitizedInput = LowerCase(StripPunctuationMarks(textHeardTrimmed));
+    std::size_t pos = 0;
+    bool startsWithPrefix = false;
+    for(const auto& prefix : prefixNeedles) {
+		if(sanitizedInput.compare(0,prefix.length(),prefix)==0) {
+			pos = prefix.length();
+			startsWithPrefix = true;
+			break;
+		}
+	}
+    if(!startsWithPrefix || pos==std::string::npos) {
+        printf("unknown google command, trying anyway");
+		pos = sanitizedInput.find("google");
+		if (pos) pos = pos + 6;
+		else pos = 0;
+    }
+    return sanitizedInput.substr(pos+1);
+}
+
+static size_t WriteCallback(char* ptr, size_t size, size_t nmemb, void* userdata) {
+	((std::string*)userdata)->append((const char*)ptr, size * nmemb);
+	return size * nmemb;
+}
+
+std::string RemoveTrailingCharacters(const std::string &inputString, const char targetCharacter) {
+    auto lastNonTargetPosition = std::find_if(inputString.rbegin(), inputString.rend(), [targetCharacter](auto ch) {
+        return ch != targetCharacter;
+    });
+    return std::string(inputString.begin(), lastNonTargetPosition.base());
+}
+
+std::string UrlEncode(const std::string& str) {
+    CURL* curl = curl_easy_init();
+    if (curl) {
+        char* encodedUrl = curl_easy_escape(curl, str.c_str(), str.length());
+        std::string escapedUrl(encodedUrl);
+        curl_free(encodedUrl);
+        curl_easy_cleanup(curl);
+        return escapedUrl;
+    }
+    return {};
+}
+
+std::string send_curl_json(const std::string &url, const std::map<std::string, std::string>& params) {
+    CURL *curl;
+    CURLcode res;
+    std::string readBuffer;
+	
+    /* Initialize curl */
+    curl = curl_easy_init();
+    if (!curl) {
+        throw std::runtime_error("Failed to initialize curl");
+    }
+    
+    try {
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());        
+        curl_easy_setopt(curl, CURLOPT_VERBOSE, 0L);
+        
+        /* Convert map to query string */
+        std::ostringstream oss;
+        bool firstParam = true;
+		oss << "{";
+        for (auto param : params) {
+          if (!firstParam) oss<< ',';
+          oss << "\"" << param.first << "\":\"" << param.second << "\"";
+          firstParam=false;
+        };
+		oss << "}";
+        fprintf(stdout, "send_curl_json: %s\n",oss.str().c_str());
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, curl_slist_append(nullptr, "Content-Type:application/json"));
+        curl_easy_setopt(curl, CURLOPT_POSTFIELDS, oss.str().c_str());
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);		
+        res = curl_easy_perform(curl);
+             
+        if (res != CURLE_OK) {
+            throw std::runtime_error(std::string("cURL error: ") + curl_easy_strerror(res));
+        } else {
+            //std::cout << "Request successful!" << std::endl;
+        }
+    }
+	catch(...) {                          // exception handler
+    }
+	curl_easy_cleanup(curl);
+	
+	return readBuffer;
+}
+
+
+// simple curl
+std::string send_curl(std::string url)
+{
+  CURL *curl;
+  CURLcode res;
+  std::string readBuffer;
+
+  curl = curl_easy_init();
+  if(curl) {
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+    res = curl_easy_perform(curl);
+    curl_easy_cleanup(curl);
+  }
+  
+  return readBuffer;
+}
+/*
+void parse_url(const string& raw_url) //no boost
+{
+    std::string path,domain,x,protocol,port,query;
+    int offset = 0;
+    size_t pos1,pos2,pos3,pos4;
+    x = _trim(raw_url);
+    offset = offset==0 && x.compare(0, 8, "https://")==0 ? 8 : offset;
+    offset = offset==0 && x.compare(0, 7, "http://" )==0 ? 7 : offset;
+    pos1 = x.find_first_of('/', offset+1 );
+    path = pos1==string::npos ? "" : x.substr(pos1);
+    domain = string( x.begin()+offset, pos1 != string::npos ? x.begin()+pos1 : x.end() );
+    path = (pos2 = path.find("#"))!=string::npos ? path.substr(0,pos2) : path;
+    port = (pos3 = domain.find(":"))!=string::npos ? domain.substr(pos3+1) : "";
+    domain = domain.substr(0, pos3!=string::npos ? pos3 : domain.length());
+    protocol = offset > 0 ? x.substr(0,offset-3) : "";
+    query = (pos4 = path.find("?"))!=string::npos ? path.substr(pos4+1) : "";
+    path = pos4!=string::npos ? path.substr(0,pos4) : path;
+    
+	cout << "[" << raw_url << "]" << endl;
+    cout << "protocol: " << protocol << endl;
+    cout << "domain: " << domain << endl;
+    cout << "port: " << port << endl;
+    cout << "path: " << path << endl;
+    cout << "query: " << query << endl;
+}
+*/
+
+std::string socket_post(const std::string &url, const std::map<std::string, std::string>& params)
+{
+	printf(" in socket_post\n ");
+    char buffer[10000];
+    int data_len;
+    std::string response;
+    int result;
+
+    
+	
+    //auto url_result = parseURL(url);
+	
+	//std::string::size_type pos = url.find('/');
+    std::string hostname = "127.0.0.1";//"url_result.first;
+    std::string path = "/tts_to_audio/";//url_result.second;
+	int port = 8020;
+
+	/* Convert map to query string */
+	std::ostringstream oss;
+	bool firstParam = true;
+	oss << "{";
+	for (auto param : params) {
+	  if (!firstParam) oss<< ',';
+	  oss << "\"" << param.first << "\":\"" << param.second << "\"";
+	  firstParam=false;
+	};
+	oss << "}";
+	//fprintf(stdout, "socket_post: %s\n",oss.str().c_str());
+	std::string payload = oss.str();//.c_str();
+	/*
+    string payload;
+    if (!data.empty())
+    {
+        payload = (data[0].first + "=" + data[0].second);
+        for (size_t i = 1; i < data.size(); ++i)
+        {
+            payload += ("&" + data[i].first + "=" + data[i].second);
+        }
+    }
+	*/
+	
+    std::string request_string = "POST ";
+    request_string += path;
+    request_string += " HTTP/1.0\r\n"; // or HTTP/1.0
+    request_string += ("Host: " + hostname + "\r\n");
+    request_string += "Accept: */*\r\n";
+    request_string += "Content-Type: application/json\r\n";
+    request_string += ("Content-Length: " + std::to_string(payload.size()) + "\r\n");
+    request_string += "Connection: close\r\n"; // omit this if using HTTP/1.0
+    request_string += "\r\n";
+    request_string += payload;
+
+    //cout << request_string << endl;
+
+    int iResult;
+
+    DWORD dwError;
+    int i = 0;
+
+    struct hostent *remoteHost;
+    struct hostent *host;
+    char *host_name;
+    struct in_addr addr;
+
+    char **pAlias;
+	
+	host = gethostbyname(hostname.c_str());
+
+    if (host->h_addrtype != AF_INET)
+    {
+        printf("hostname does not have IPv4 address\n");
+        return "";
+    }
+	//printf("%s\n", request_string.c_str());
+
+    SOCKADDR_IN server = {}; 
+    server.sin_port = htons(port);
+    server.sin_family = host->h_addrtype;
+    server.sin_addr.s_addr = *((unsigned long *)host->h_addr);
+
+    SOCKET sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (sock < 0)
+    {
+        printf("Unable to create a socket\n");
+        return "";
+    }
+
+    result = connect(sock, (SOCKADDR *)(&server), sizeof(server));
+    if (result < 0)
+    {
+        printf("Unable to connect to the server\n");
+        //close(sock);
+		printf("closed sock");
+        return "";
+    }
+    //printf("Successfully connected to the server");
+
+    const char *preq = request_string.c_str();
+    data_len = request_string.size();
+    do
+    {
+        result = send(sock, preq, data_len, 0);
+        if (result < 0)
+        {
+            printf("Unable to send the request\n");
+            close(sock);
+            return "";
+        }
+        preq += result;
+        data_len -= result;
+    }
+    while (data_len > 0);
+    //printf("Successfully sent the request. exiting.");
+	//close(sock);
+	return ""; 
+
+    while ((data_len = recv(sock, buffer, sizeof(buffer), 0)) > 0)
+    {
+        int i = 0;
+        do
+        {
+            if (buffer[i] >= 32 || buffer[i] == '\n' || buffer[i] == '\r')
+            {
+                response += buffer[i];
+            }
+            ++i;
+        }
+        while (i < data_len);
+    }
+
+    if (data_len < 0)
+    {
+        printf("Unable to read the response\n");
+        close(sock);
+        return "";
+    }
+	
+    return response;
+}
+
+
+// async curl, but it's still blocking for some reason
+// doesn't wait for responce
+void send_tts_async(std::string text, std::string speaker_wav="emma_1", std::string language="en")
+{
+	std::string url = "http://localhost:8020/tts_to_audio/";
+	//printf(" in send_tts_async: %s; size: %d\n",text.c_str(), text.size());
+	if (text.size() && text != "." && text != "," && text != "!" && text != "\n")
+	{
+		trim(text);
+		text = ::replace(text, "\r", "");
+		text = ::replace(text, "\n", " ");
+		text = ::replace(text, "\"", "");
+		//printf("send_tts_async sending, size:%d\n", text.size());
+		
+		//std::map<std::string, std::string> params={{"text", text}, {"speaker_wav", speaker_wav}, {"language", language}};
+		//send_curl_json(url, params);
+		//socket_post(url, params);
+		//printf("after socket_post\n");
+		
+		//std::wstring w_text = std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(text.c_str());
+		//printf("trying to w_text %s, size:%d\n", w_text, w_text.size());
+		//text = console::UTF16toUTF8(w_text);		
+		//printf("trying to curl text %s, size:%d\n", text, text.size());
+		
+		
+		
+		CURL *http_handle;
+		CURLM *multi_handle;
+		int still_running = 1;
+		curl_global_init(CURL_GLOBAL_DEFAULT);
+		http_handle = curl_easy_init();
+		std::string data = "{\"text\":\""+text+"\", \"language\":\""+language+"\", \"speaker_wav\":\""+speaker_wav+"\"}";
+		//fprintf(stdout, " [data (%s)]\n", data.c_str());
+		
+		curl_easy_setopt(http_handle, CURLOPT_HTTPHEADER, curl_slist_append(nullptr, "Content-Type:application/json"));
+		curl_easy_setopt(http_handle, CURLOPT_URL, "http://localhost:8020/tts_to_audio/");
+		curl_easy_setopt(http_handle, CURLOPT_POSTFIELDS, data.c_str());
+		curl_easy_setopt(http_handle, CURLOPT_VERBOSE, 0L);
+		
+		std::string responseData;
+		curl_easy_setopt(http_handle, CURLOPT_WRITEDATA, &responseData);
+		curl_easy_setopt(http_handle, CURLOPT_WRITEFUNCTION, WriteCallback);
+
+		multi_handle = curl_multi_init();
+		curl_multi_add_handle(multi_handle, http_handle);
+
+		do {
+		  CURLMcode mc = curl_multi_perform(multi_handle, &still_running);
+	 
+		  if(still_running) mc = curl_multi_poll(multi_handle, NULL, 0, 1000, NULL);// wait for activity, timeout or "nothing" 
+	 
+		  if(mc)
+			break;
+		} while(still_running);
+
+		//curl_multi_remove_handle(multi_handle, http_handle);
+		curl_easy_cleanup(http_handle);
+		curl_multi_cleanup(multi_handle);
+		curl_global_cleanup();
+		
+	}
+}
+
+
+void thread_fn( std::string text/*, std::string language="en" */) {
+	if (text.size())
+	{
+		fprintf(stdout, " [before thread, [%d] %s]\n",  text.c_str());
+		send_tts_async(text, "emma_1", "en");
+		fprintf(stdout," [after thread] ");
+		//text_to_speak_arr[thread_i-1] = "";
+	}
+}
+
+
 const std::string k_prompt_whisper = R"(A conversation with a person called {1}.)";
 
 const std::string k_prompt_llama = R"(Text transcript of a never ending dialog, where {0} interacts with an AI assistant named {1}.
@@ -257,21 +747,25 @@ The transcript only includes text, it does not include markup like HTML and Mark
 {0}{4} Hello, {1}!
 {1}{4} Hello {0}! How may I help you today?
 {0}{4} What time is it?
-{1}{4} It is {2} o'clock.
-{0}{4} What year is it?
-{1}{4} We are in {3}.
+{1}{4} It is {2} o'clock, {5}, year {3}.
 {0}{4} What is a cat?
 {1}{4} A cat is a domestic species of small carnivorous mammal. It is the only domesticated species in the family Felidae.
 {0}{4} Name a color.
 {1}{4} Blue
 {0}{4})";
 
-int main(int argc, char ** argv) {
-    whisper_params params;
-
+int run(int argc, const char ** argv) {
+	whisper_params params;
+	std::vector<std::thread> threads;
+	std::thread t;
+	int thread_i = 0;
+	std::string text_to_speak_arr[100];
+	bool last_output_has_username = false;
+	
     if (whisper_params_parse(argc, argv, params) == false) {
         return 1;
     }
+	printf("in wmain 2\n");
 
     if (params.language != "auto" && whisper_lang_id(params.language.c_str()) == -1) {
         fprintf(stderr, "error: unknown language '%s'\n", params.language.c_str());
@@ -288,7 +782,7 @@ int main(int argc, char ** argv) {
 
     // llama init
 
-    llama_backend_init();
+    llama_backend_init(true);
 
     auto lmparams = llama_model_default_params();
     if (!params.use_gpu) {
@@ -302,9 +796,10 @@ int main(int argc, char ** argv) {
     llama_context_params lcparams = llama_context_default_params();
 
     // tune these to your liking
-    lcparams.n_ctx      = 2048;
+    lcparams.n_ctx      = params.ctx_size; // 2048 default
     lcparams.seed       = 1;
     lcparams.n_threads  = params.n_threads;
+    lcparams.n_batch  = 1024; // 512 is too small for init prompt
 
     struct llama_context * ctx_llama = llama_new_context_with_model(model_llama, lcparams);
 
@@ -313,6 +808,7 @@ int main(int argc, char ** argv) {
         fprintf(stderr, "\n");
 
         if (!whisper_is_multilingual(ctx_wsp)) {
+			fprintf(stderr, "WARNING: model is not multilingual");
             if (params.language != "en" || params.translate) {
                 params.language = "en";
                 params.translate = false;
@@ -376,14 +872,18 @@ int main(int argc, char ** argv) {
     {
         // get year string
         std::string year_str;
+        std::string ymd;
         {
             time_t t = time(0);
             struct tm * now = localtime(&t);
             char buf[128];
             strftime(buf, sizeof(buf), "%Y", now);
             year_str = buf;
+			strftime(buf, sizeof(buf), "%Y-%m-%d", now);
+            ymd = buf;
         }
         prompt_llama = ::replace(prompt_llama, "{3}", year_str);
+        prompt_llama = ::replace(prompt_llama, "{5}", ymd);
     }
 
     prompt_llama = ::replace(prompt_llama, "{4}", chat_symb);
@@ -424,7 +924,7 @@ int main(int argc, char ** argv) {
     printf("%s : initializing - please wait ...\n", __func__);
 
     if (llama_eval(ctx_llama, embd_inp.data(), embd_inp.size(), 0)) {
-        fprintf(stderr, "%s : failed to eval\n", __func__);
+        fprintf(stderr, "%s : if failed to eval, try increasing n_batch or write shorter initial prompt\n", __func__);
         return 1;
     }
 
@@ -483,17 +983,26 @@ int main(int argc, char ** argv) {
     const int n_ctx    = llama_n_ctx(ctx_llama);
 
     int n_past = n_keep;
-    int n_prev = 64; // TODO arg
+    int n_prev = 64;
+    std::vector<int> past_prev_arr{};
+    int n_past_prev = 0; // token count that was before the last answer
     int n_session_consumed = !path_session.empty() && session_tokens.size() > 0 ? session_tokens.size() : 0;
-
     std::vector<llama_token> embd;
-
+	std::string text_heard_prev;
+	std::string text_heard_trimmed;
+	int new_command_allowed = 1;
+	std::string google_resp;
+	
+	int last_command_time = 0;
+	
     // reverse prompts for detecting when it's time to stop speaking
     std::vector<std::string> antiprompts = {
         params.person + chat_symb,
+        "\n",
+        "Sergey:",
     };
 
-    // main loop
+    // main loop	
     while (is_running) {
         // handle Ctrl + C
         is_running = sdl_poll_events();
@@ -509,12 +1018,20 @@ int main(int argc, char ** argv) {
 
         {
             audio.get(2000, pcmf32_cur);
-
-            if (::vad_simple(pcmf32_cur, WHISPER_SAMPLE_RATE, 1250, params.vad_thold, params.freq_thold, params.print_energy) || force_speak) {
+			// WHISPER_SAMPLE_RATE 16000
+			//int vad_result = ::vad_simple(pcmf32_cur, WHISPER_SAMPLE_RATE, 1250, params.vad_thold, params.freq_thold, params.print_energy);
+			int vad_result = ::vad_simple(pcmf32_cur, WHISPER_SAMPLE_RATE, params.vad_last_ms, params.vad_thold, params.freq_thold, params.print_energy);
+			if (vad_result == 1) // speech started
+			{
+				// user has started speaking, xtts cannot play
+				//fprintf(stdout, "%s: Speech start! ...\n", __func__);
+				allow_xtts_file("c:\\DATA\\LLM\\xtts\\xtts_play_allowed.txt", 0);
+			}		
+            if (vad_result >= 2 || force_speak)  // speech ended
+			{
                 //fprintf(stdout, "%s: Speech detected! Processing ...\n", __func__);
-
                 audio.get(params.voice_ms, pcmf32_cur);
-
+				
                 std::string all_heard;
 
                 if (!force_speak) {
@@ -532,8 +1049,10 @@ int main(int argc, char ** argv) {
                     } else {
                         text_heard += words[i] + " ";
                     }
-                }
-
+                }				
+				//fprintf(stdout, " [text_heard: (%s)]\n", text_heard.c_str());
+				
+				
                 // check if audio starts with the wake-up command if enabled
                 if (use_wake_cmd) {
                     const float sim = similarity(wake_cmd_heard, wake_cmd);
@@ -551,28 +1070,204 @@ int main(int argc, char ** argv) {
                         fprintf(stderr, "%s: failed to speak\n", __func__);
                     }
                 }
-
+				
                 // remove text between brackets using regex
                 {
                     std::regex re("\\[.*?\\]");
                     text_heard = std::regex_replace(text_heard, re, "");
                 }
-
+				
                 // remove text between brackets using regex
                 {
                     std::regex re("\\(.*?\\)");
                     text_heard = std::regex_replace(text_heard, re, "");
                 }
-
                 // remove all characters, except for letters, numbers, punctuation and ':', '\'', '-', ' '
-                text_heard = std::regex_replace(text_heard, std::regex("[^a-zA-Z0-9\\.,\\?!\\s\\:\\'\\-]"), "");
-
+                if (params.language == "en") text_heard = std::regex_replace(text_heard, std::regex("[^a-zA-Z0-9\\.,\\?!\\s\\:\\'\\-]"), ""); // breaks non latin text, e.g. Russian
                 // take first line
                 text_heard = text_heard.substr(0, text_heard.find_first_of('\n'));
 
                 // remove leading and trailing whitespace
                 text_heard = std::regex_replace(text_heard, std::regex("^\\s+"), "");
                 text_heard = std::regex_replace(text_heard, std::regex("\\s+$"), "");
+
+				// misheard text, sometimes whisper is hallucinating
+				text_heard = RemoveTrailingCharacters(text_heard, '!');
+				text_heard = RemoveTrailingCharacters(text_heard, ',');
+				text_heard = RemoveTrailingCharacters(text_heard, '.');
+				if (text_heard[0] == '.') text_heard.erase(0, 1);
+				if (text_heard == "!" || text_heard == "." || text_heard == "Sil" || text_heard == "Okay"  || text_heard == "Okay." || text_heard == "Thank you." || text_heard == "Thank you" || text_heard == "Thanks." || text_heard == "Bye." || text_heard == "Thank you for listening." || text_heard == "К" || text_heard == "Спасибо" || text_heard == params.bot_name || text_heard == "*Звук!*" || text_heard == "Р" || text_heard.find("Редактор субтитров")!= std::string::npos || text_heard.find("можешь это сделать")!= std::string::npos || text_heard.find("Как дела?")!= std::string::npos) text_heard = "";
+				text_heard = std::regex_replace(text_heard, std::regex("\\s+$"), ""); // trailing whitespace
+
+				
+				//printf("Number of tokens in embd: %zu\n", embd.size());
+				//printf("n_past_prev: %d\n", n_past_prev);
+				//printf("text_heard_prev: %s\n", text_heard_prev);
+				
+				text_heard_trimmed = text_heard; // no periods or spaces
+				trim(text_heard_trimmed);
+				if (text_heard_trimmed[0] == '.') text_heard_trimmed.erase(0, 1);
+				if (text_heard_trimmed[text_heard_trimmed.length() - 1] == '.' || text_heard_trimmed[text_heard_trimmed.length() - 1] == '!') text_heard_trimmed.erase(text_heard_trimmed.length() - 1, 1);
+				trim(text_heard_trimmed);
+				text_heard_trimmed = LowerCase(text_heard_trimmed); // not working right with utf and russian
+				
+				//fprintf(stdout, " [text_heard: (%s)]\n", text_heard.c_str());
+				//fprintf(stdout, "text_heard_trimmed: %s%s%s", "\033[1m", text_heard_trimmed.c_str(), "\033[0m");
+                fflush(stdout);
+				std::string user_command;
+				
+				
+				if (text_heard_trimmed.find("regenerate") != std::string::npos || text_heard_trimmed.find("Переделай") != std::string::npos || text_heard_trimmed.find("егенерируй") != std::string::npos || text_heard_trimmed.find("егенерировать") != std::string::npos) user_command = "regenerate";
+				else if (text_heard_trimmed.find("google") != std::string::npos || text_heard_trimmed.find("Погугли") != std::string::npos || text_heard_trimmed.find("Пожалуйста, погугли") != std::string::npos || text_heard_trimmed.find("По гугл") != std::string::npos) user_command = "google";
+				else if (text_heard_trimmed.find("reset") != std::string::npos || text_heard_trimmed.find("Сброс") != std::string::npos || text_heard_trimmed.find("Сбросить") != std::string::npos || text_heard_trimmed.find("Удали все") != std::string::npos || text_heard_trimmed.find("Удалить все") != std::string::npos) user_command = "reset";
+				else if (text_heard_trimmed.find("delete") != std::string::npos || text_heard_trimmed.find("delete everything") != std::string::npos || text_heard_trimmed.find("Удали") != std::string::npos || text_heard_trimmed.find("Удалить сообщение") != std::string::npos || text_heard_trimmed.find("Удали сообщение") != std::string::npos || text_heard_trimmed.find("Удали два сообщения") != std::string::npos || text_heard_trimmed.find("Удали три сообщения") != std::string::npos) user_command = "delete";
+				else if (text_heard_trimmed.find("stop") != std::string::npos || text_heard_trimmed.find("Стоп") != std::string::npos || text_heard_trimmed.find("Остановись") != std::string::npos || text_heard_trimmed.find("тановись") != std::string::npos || text_heard_trimmed.find("Хватит") != std::string::npos || text_heard_trimmed.find("Становись") != std::string::npos) user_command = "stop";
+				
+				// user has finished speaking, xtts can play
+				allow_xtts_file("c:\\DATA\\LLM\\xtts\\xtts_play_allowed.txt", 1);
+				
+				if (user_command.size() && !new_command_allowed && std::time(0)-last_command_time >= 1) 
+				{
+					new_command_allowed = 1; // timeout before same command (whisper hallucinates sometimes)
+					//printf("new_command_allowed: %d\n", new_command_allowed);
+				}
+				
+				if (user_command == "regenerate" || text_heard_trimmed == "Please regenerate" || text_heard_trimmed == "Regenerate please" || text_heard_trimmed == "Regenerate, please" || text_heard_trimmed == "Try again please" || text_heard_trimmed == "Try again, please" || text_heard_trimmed == "Please try again" || text_heard_trimmed == "Try again") 
+				{
+					if (new_command_allowed)
+					{
+						if (!past_prev_arr.empty())
+						{
+							// regenerate prev llama reply
+							n_past_prev = past_prev_arr.back();
+							past_prev_arr.pop_back();
+							int rollback_num = embd_inp.size()-n_past_prev;
+							if (rollback_num)
+							{
+								printf("regenerating %d tokens\n", rollback_num);						
+								embd_inp.erase(embd_inp.end() - rollback_num, embd_inp.end());						
+								n_past -= rollback_num;
+								text_heard = text_heard_prev;
+								text_heard_trimmed = "";
+								//send_tts_async("Regenerating", "ux", params.language);
+								new_command_allowed = 0;
+							}
+						}						
+					}
+				}
+				else if (user_command == "delete" || text_heard_trimmed == "Please delete" || text_heard_trimmed == "Please delete the last message" || text_heard_trimmed == "Delete please" || text_heard_trimmed == "Delete, please") 
+				{
+					if (new_command_allowed) // delete prev user question and llama reply, then dont do anything
+					{
+						if (!past_prev_arr.empty())
+						{
+							if (text_heard_trimmed == "Удали 2 сообщения" || text_heard_trimmed == "Удали два сообщения")
+							{
+								n_past_prev = past_prev_arr.back();
+								past_prev_arr.pop_back();
+							}
+							else if (text_heard_trimmed == "Удали 3 сообщения" || text_heard_trimmed == "Удали три сообщения")
+							{
+								n_past_prev = past_prev_arr.back();
+								past_prev_arr.pop_back();
+								n_past_prev = past_prev_arr.back();
+								past_prev_arr.pop_back();
+							}
+						
+							n_past_prev = past_prev_arr.back();
+							past_prev_arr.pop_back();
+							int rollback_num = embd_inp.size()-n_past_prev;
+							if (rollback_num)
+							{
+								printf("deleting %d tokens\n", rollback_num);						
+								embd_inp.erase(embd_inp.end() - rollback_num, embd_inp.end());						
+								n_past -= rollback_num;
+								text_heard = "";
+								text_heard_trimmed = "";
+								send_tts_async("Deleted", "ux", params.language);
+								last_command_time = std::time(0);
+								//printf("last_command_time: %d\n", last_command_time);
+								new_command_allowed = 0;
+							}
+						}
+						else 
+						{
+							printf("Nothing to delete more\n");
+							send_tts_async("Nothing to delete more", "ux", params.language);
+						}
+					}
+					audio.clear();
+					//continue;
+				}
+				else if (user_command == "reset") 
+				{
+					if (new_command_allowed)
+					{
+						if (!past_prev_arr.empty())
+						{
+							// delete everything to start prompt
+							n_past_prev = past_prev_arr.front();
+							past_prev_arr.clear();
+							int rollback_num = embd_inp.size()-n_past_prev;
+							if (rollback_num)
+							{
+								printf("Reset. deleting %d tokens\n", rollback_num);						
+								embd_inp.erase(embd_inp.end() - rollback_num, embd_inp.end());						
+								n_past -= rollback_num;
+								text_heard = "";
+								text_heard_trimmed = "";
+								send_tts_async("Reset whole context.", "ux", params.language);
+								new_command_allowed = 0;
+							}
+						}
+						else 
+						{
+							printf("Nothing to reset more\n");
+							send_tts_async("Nothing to reset more", "ux", params.language);
+						}
+					}
+					audio.clear();
+					continue;
+				}
+				else if (user_command == "stop") 
+				{
+					printf(" Stopped!\n");
+					audio.clear();
+				}
+				else if (user_command == "google") 
+				{
+					std::string q = ParseCommandAndGetKeyword(text_heard_trimmed);
+					if (q.size())
+					{
+						std::string url = "http://localhost:8003/google?q="+UrlEncode(q);
+						google_resp = send_curl(url);
+						if (google_resp.size())
+						{
+							fprintf(stdout, "google_resp (%s): %s\n", q.c_str(), google_resp.c_str());
+							if (google_resp.length() > 200) 
+							{
+								size_t space_pos = google_resp.find(' ', 201);   
+								if(space_pos != std::string::npos) google_resp = google_resp.substr(0, space_pos);   
+							}
+							google_resp = "Google: "+google_resp+" .";
+							text_heard += "\n"+google_resp;
+							
+							fprintf(stdout, " [before goo [%d] (%s)]\n", thread_i, google_resp.c_str());
+							if (google_resp.size()) 
+							{
+								threads.emplace_back([&] // creates and starts a thread
+								{
+									if (google_resp.size()) send_tts_async(google_resp, "ux", "ru"); //params.language
+								});
+								thread_i++;
+							}
+							fprintf(stdout," [after goo] ");
+						}
+						printf("bad google resp, check that langchain server is ok");
+					}
+					else fprintf(stdout, "can't get search keyword from text_heard_trimmed: %s\n", text_heard_trimmed.c_str());
+				}
+				
 
                 const std::vector<llama_token> tokens = llama_tokenize(ctx_llama, text_heard.c_str(), false);
 
@@ -582,26 +1277,56 @@ int main(int argc, char ** argv) {
 
                     continue;
                 }
-
+				printf("  [t: %zu] ", embd_inp.size());
                 force_speak = false;
 
-                text_heard.insert(0, 1, ' ');
+				text_heard_prev = text_heard;
+				n_past_prev = embd_inp.size();
+				past_prev_arr.push_back(embd_inp.size());
+				
+				//printf("text_heard_prev: %s\n", text_heard_prev);
+                if (last_output_has_username) text_heard.insert(0, 1, ' ');
+                else text_heard.insert(0, "\n"+params.person + chat_symb + " ");
                 text_heard += "\n" + params.bot_name + chat_symb;
                 fprintf(stdout, "%s%s%s", "\033[1m", text_heard.c_str(), "\033[0m");
                 fflush(stdout);
-
+				
                 embd = ::llama_tokenize(ctx_llama, text_heard, false);
 
                 // Append the new input tokens to the session_tokens vector
                 if (!path_session.empty()) {
                     session_tokens.insert(session_tokens.end(), tokens.begin(), tokens.end());
                 }
+				
+				if (threads.size() >=30)
+				{
+					printf("[!...", threads.size());
+					for (auto& t : threads) 
+					{
+						try 
+						{
+							if (t.joinable()) t.join();							
+							else printf("Notice: thread %d is NOT joinable\n", thread_i );
+						}
+						catch (const std::exception& ex) {
+							std::cerr << "[Exception]: Failed join a thread: " << ex.what() << '\n';
+						}
+					}
+					threads.clear();
+					printf("]");
+				}
+				if (thread_i >= 50) thread_i = 0; // rotation
+				
+				
 
                 // text inference
                 bool done = false;
                 std::string text_to_speak;
+				int new_tokens = 0;	   
                 while (true) {
                     // predict
+					if (new_tokens > params.n_predict) break; // 64 default
+					new_tokens++;
                     if (embd.size() > 0) {
                         if (n_past + (int) embd.size() > n_ctx) {
                             n_past = n_keep;
@@ -651,24 +1376,24 @@ int main(int argc, char ** argv) {
                             fprintf(stderr, "%s : failed to eval\n", __func__);
                             return 1;
                         }
-                    }
-
+                    }	
+					
 
                     embd_inp.insert(embd_inp.end(), embd.begin(), embd.end());
                     n_past += embd.size();
-
+					
                     embd.clear();
-
+					new_command_allowed = 1;
                     if (done) break;
 
                     {
                         // out of user input, sample next token
-                        const float top_k          = 5;
-                        const float top_p          = 0.80f;
-                        const float temp           = 0.30f;
-                        const float repeat_penalty = 1.1764f;
+                        const float top_k          = params.top_k;
+                        const float top_p          = params.top_p;
+                        const float temp           = params.temp;
+                        const float repeat_penalty = params.repeat_penalty;
 
-                        const int repeat_last_n    = 256;
+                        const int repeat_last_n    = 384; // was 256
 
                         if (!path_session.empty() && need_to_save_session) {
                             need_to_save_session = false;
@@ -717,12 +1442,58 @@ int main(int argc, char ** argv) {
                             embd.push_back(id);
 
                             text_to_speak += llama_token_to_piece(ctx_llama, id);
+                            //text_to_speak += llama_token_to_piece(ctx_llama, id).c_str();
 
                             printf("%s", llama_token_to_piece(ctx_llama, id).c_str());
-                            fflush(stdout);
+							
+							// streaming tts
+							int text_len = text_to_speak.size();
+							if (text_len >= 10 && (text_to_speak[text_len-1] == '.' /*|| text_to_speak[text_len-1] == ','*/ || text_to_speak[text_len-1] == '?' || text_to_speak[text_len-1] == '!' || text_to_speak[text_len-1] == ';' || text_to_speak[text_len-1] == ':'))
+							{
+								text_to_speak = ::replace(text_to_speak, "\"", "'");
+								text_to_speak = ::replace(text_to_speak, antiprompts[0], "");
+								
+								if (text_to_speak.size()) // first and mid parts of the sentence
+								{
+									// system TTS
+									//int ret = system(("start /B "+params.speak + " " + std::to_string(voice_id) + " \"" + text_to_speak + "\" & exit").c_str()); // for windows
+									//int ret = system((params.speak + " " + std::to_string(voice_id) + " \"" + text_to_speak + "\" &").c_str()); // for linux
+								
+									// XTTS in threads
+									text_to_speak_arr[thread_i] = text_to_speak;
+									try 
+									{
+										threads.emplace_back([&] // creates and starts a thread. crashes after 100 threads
+										{
+											if (text_to_speak_arr[thread_i-1].size())
+											{
+												send_tts_async(text_to_speak_arr[thread_i-1], "emma_1", params.language);
+												text_to_speak_arr[thread_i-1] = "";
+											}
+										});
+										thread_i++;
+										text_to_speak = "";  
+									}
+									catch (const std::exception& ex) {
+										std::cerr << "[Exception]: Failed to push_back mid thread: " << ex.what() << '\n';
+									}
+									
+									// check if user is speaking after each sentence. Good for 'stop' command, but it doesn't call whisper recognition. 'Stop' -> wait 1s -> ask question
+									audio.get(500, pcmf32_cur); // 0.5s?
+									int vad_result = ::vad_simple(pcmf32_cur, WHISPER_SAMPLE_RATE, params.vad_last_ms, params.vad_thold, params.freq_thold, params.print_energy);
+									if (vad_result == 1) // speech started
+									{
+										// user has started speaking, xtts cannot play
+										fprintf(stdout, " [Speech detected! Aborting ...]\n");
+										allow_xtts_file("c:\\DATA\\LLM\\xtts\\xtts_play_allowed.txt", 0);
+										done = true; // generation stops
+										break;
+									}
+								}
+							}			   
                         }
                     }
-
+					
                     {
                         std::string last_output;
                         for (int i = embd_inp.size() - 16; i < (int) embd_inp.size(); i++) {
@@ -730,14 +1501,23 @@ int main(int argc, char ** argv) {
                         }
                         last_output += llama_token_to_piece(ctx_llama, embd[0]);
 
-                        for (std::string & antiprompt : antiprompts) {
+						int i_antiprompt = 0;
+						last_output_has_username = false;
+                        for (std::string & antiprompt : antiprompts) 
+						{
                             if (last_output.find(antiprompt.c_str(), last_output.length() - antiprompt.length(), antiprompt.length()) != std::string::npos) {
                                 done = true;
                                 text_to_speak = ::replace(text_to_speak, antiprompt, "");
                                 fflush(stdout);
                                 need_to_save_session = true;
+								if (i_antiprompt == 0) 
+								{
+									last_output_has_username = true;
+								}
+								//printf("antiprompt: %s\n", antiprompt.c_str());
                                 break;
                             }
+							i_antiprompt++;
                         }
                     }
 
@@ -747,13 +1527,30 @@ int main(int argc, char ** argv) {
                         break;
                     }
                 }
-
-                text_to_speak = ::replace(text_to_speak, "'", "'\"'\"'");
-                int ret = system((params.speak + " " + std::to_string(voice_id) + " '" + text_to_speak + "'").c_str());
-                if (ret != 0) {
-                    fprintf(stderr, "%s: failed to speak\n", __func__);
-                }
-
+				
+				// final part of the sentence, if any
+                text_to_speak = ::replace(text_to_speak, "\"", "'");				
+				if (text_to_speak.size()) 
+				{
+					text_to_speak_arr[thread_i] = text_to_speak;
+					try 
+					{		
+						threads.emplace_back([&] // creates and starts a thread
+						{
+							if (text_to_speak_arr[thread_i-1].size())
+							{
+								send_tts_async(text_to_speak_arr[thread_i-1], "emma_1", params.language);
+								text_to_speak_arr[thread_i-1] = "";
+							}
+						});	
+						thread_i++;
+						text_to_speak = "";  						
+					}
+					catch (const std::exception& ex) {
+						std::cerr << "[Exception]: Failed to emplace fin thread: " << ex.what() << '\n'; 
+					}
+				}
+				
                 audio.clear();
             }
         }
@@ -769,3 +1566,32 @@ int main(int argc, char ** argv) {
 
     return 0;
 }
+
+//#ifdef WIN32
+//	// Initialize Winsock
+//	WORD ver = MAKEWORD(2 , 2);
+//	WSADATA dat;
+//    int wsastartup = WSAStartup(ver, &dat);
+//#endif
+	
+#if _WIN32
+int wmain(int argc, const wchar_t ** argv_UTF16LE) {
+	//setlocale(LC_ALL,"Russian");
+	console::init(true, true);
+    atexit([]() { console::cleanup(); });
+    std::vector<std::string> buffer(argc);
+    std::vector<const char*> argv_UTF8(argc);
+	for (int i = 0; i < argc; ++i) {
+        buffer[i] = console::UTF16toUTF8(argv_UTF16LE[i]);
+        argv_UTF8[i] = buffer[i].c_str();
+    }
+    return run(argc, argv_UTF8.data());
+}
+#else
+int main(int argc, const char ** argv_UTF8) {
+    console::init(true, true);
+    atexit([]() { console::cleanup(); });
+    return run(argc, argv_UTF8);
+}
+#endif
+

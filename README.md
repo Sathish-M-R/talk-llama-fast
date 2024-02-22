@@ -36,9 +36,9 @@ c:\Users\[username]\miniconda3\Lib\site-packages\stream2sentence\stream2sentence
 
 line 191, replace 
 
-'''
+```
 sentence_delimiters = '.?!;:,\n…)]}。'
 with
 sentence_delimiters = '.?!;:\n…)]}。'
 sentences with real coma sound nicer
-'''
+```

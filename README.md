@@ -16,11 +16,12 @@ i used:
 - mistral-7b-instruct-v0.2.Q6_K.gguf
 - xTTSv2 server streaming-mode
 
+NOTES:
 - It's just a proof of work.
 - Documentation is still TODO.
 - Android version is TODO.
 
-All running on 3060 12 GB vram, but i guess you can try with 8 GB.
+Everything is running on 3060 12 GB vram, but i guess you can try with 8 GB. You can try to use CPU instead of GPU, but it will be slow.
 
 
 I uploaded modified cpp files, but they still have some hardcoded paths (TODO, c:\\DATA\\LLM\\xtts\\xtts_play_allowed.txt), so i guess they won't work if you don't modify them manually

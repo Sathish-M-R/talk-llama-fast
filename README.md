@@ -31,6 +31,7 @@ I uploaded win64 exe and bat files in realeses. You can try, but it still have s
 Google search server is based on langchain google-serp, i will upload source code later.
 
 
+[OTHER FILES fixes]
 xtts better coma handling:
 
 c:\Users\[username]\miniconda3\Lib\site-packages\stream2sentence\stream2sentence.py

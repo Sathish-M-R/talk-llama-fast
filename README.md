@@ -4,22 +4,23 @@ Early pre beta!
 
 based on talk-llama https://github.com/ggerganov/whisper.cpp
 
-I added:
-- xTTSv2 support;
-- UTF8 and Russian;
-- Speed-ups: streaming for generation, streaming for xtts, aggresive VAD;
-- commands: Google, stop, regenerate, reset.
-- generation interription when user is speaking.
+## added:
+- xTTSv2 support
+- UTF8 and Russian
+- Speed-ups: streaming for generation, streaming for xtts, aggresive VAD
+- commands: Google, stop, regenerate, reset
+- generation interription when user is speaking
 
-i used: 
+## I used: 
 - whsiper-cpp ggml-medium-q5_0.bin
 - mistral-7b-instruct-v0.2.Q6_K.gguf
 - xTTSv2 server streaming-mode
 
-## Notes
-- Everything is running on 3060 12 GB vram, but i guess you can try with 8 GB. You can try to use CPU instead of GPU, but it will be slow.
+## Requirements
+- Windows 11 x64
+- nvidia 3060 12 GB vram, but i guess you can try with 8 GB. Also you can try to use CPU instead of GPU, but it will be slow (you need to build cpu version yourself).
+- For AMD, macos, linux, android - first you need to compile everything. I don't know if it works. 
 - Android version is TODO.
-- Works nvidia CUDA for win x64, other systems - not tested. 
 
 ## Running
 ### For Windows x64 with CUDA
@@ -28,22 +29,17 @@ i used:
 - Download /xtts directory from my repostory, keep the structure. Run xtts_streaming.bat to start xtts server.
 - Download whisper model to folder with talk-llama.exe https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin (for Russian) or https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin (for English). You can try small-q5 if you don't have much VRAM.
 - Download LLM to same folder https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q6_K.gguf , you can try q4_K_S if you don't have much VRAM.
-- Optional: Edit talk-llama.bat or talk-llama_ru.bat, change params if needed. Also check optional section below for speed-ups and google plugin.
+- Optional: ddit talk-llama.bat or talk-llama_ru.bat, change params if needed. Also check optional section below for speed-ups and google plugin.
 - Click talk-llama.bat or talk-llama_ru.bat, start speaking.  
 
-### For AMD, macos, linux, android
-- first you need to compile everything. I don't know if it works.
-
 ### Optional, stop xtts when user is speaking
-- To stop playing XTTS: In talk-llama.bat change --xtts-control-path to full path where you have xtts_play_allowed.txt
-- Then modify c:\Users\[USERNAME]\miniconda3\Lib\site-packages\xtts_api_server\RealtimeTTS\text_to_stream.py
-```
-CODE here is TODO
-```
+- To stop playing XTTS: In talk-llama.bat change param --xtts-control-path to full path where you have xtts_play_allowed.txt
+- Then you need to modify c:\Users\[USERNAME]\miniconda3\Lib\site-packages\xtts_api_server\RealtimeTTS\text_to_stream.py
+- download /xtts/text_to_stream.py from my repo, compare its contents with original file (e.g. using notepad++ compare plugin), make changes. I will make automatic patcher later.
 
 ## Optional, better coma handling for xtts
 Better speech, but a little slower for first sentence:
-c:\Users\[username]\miniconda3\Lib\site-packages\stream2sentence\stream2sentence.py
+c:\Users\[USERNAME]\miniconda3\Lib\site-packages\stream2sentence\stream2sentence.py
 line 191, replace 
 ```
 sentence_delimiters = '.?!;:,\n…)]}。'

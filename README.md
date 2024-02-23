@@ -4,12 +4,12 @@ Early pre beta!
 
 based on talk-llama https://github.com/ggerganov/whisper.cpp
 
-## added:
+## I added:
 - xTTSv2 support
 - UTF8 and Russian
 - Speed-ups: streaming for generation, streaming for xtts, aggresive VAD
 - commands: Google, stop, regenerate, reset
-- generation interription when user is speaking
+- generation interruption when user is speaking
 
 ## I used: 
 - whsiper-cpp ggml-medium-q5_0.bin
@@ -22,14 +22,14 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 - For AMD, macos, linux, android - first you need to compile everything. I don't know if it works. 
 - Android version is TODO.
 
-## Running
-### For Windows x64 with CUDA
+## Installation
+### For Windows 10/11 x64 with CUDA
 - Download anywhere all files from the latest release (Releases section is on the right)
 - install https://github.com/daswer123/xtts-api-server Use this manual: https://docs.sillytavern.app/extras/extensions/xtts/
 - Download /xtts directory from my repostory, keep the structure. Run xtts_streaming.bat to start xtts server.
-- Download whisper model to folder with talk-llama.exe https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin (for Russian) or https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin (for English). You can try small-q5 if you don't have much VRAM.
+- Download whisper model to folder with talk-llama.exe: https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin (for Russian) or https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin (for English). You can try small-q5 if you don't have much VRAM.
 - Download LLM to same folder https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q6_K.gguf , you can try q4_K_S if you don't have much VRAM.
-- Optional: edit talk-llama.bat or talk-llama_ru.bat, change params if needed. Also check optional section below for speed-ups and google plugin.
+- Optional: edit talk-llama.bat or talk-llama_ru.bat, change params if needed (params description is below). Also check optional section below for speed-ups and google plugin.
 - Click talk-llama.bat or talk-llama_ru.bat, start speaking.  
 
 ### Optional, stop xtts when user is speaking
@@ -49,11 +49,12 @@ sentence_delimiters = '.?!;:\n…)]}。'
 
 ## Optional, google search plugin
 - download search_server.py from my repo
-- install langchain `pip install langchain`
-- sign up at https://serper.dev/api-key it is free and fast, it will give you 2500 free searches. Get an API key, paste it to search_server.py in line 15 `os.environ["SERPER_API_KEY"] = "your_key"`
+- install langchain: `pip install langchain`
+- sign up at https://serper.dev/api-key it is free and fast, it will give you 2500 free searches. Get an API key, paste it to search_server.py at line 15 `os.environ["SERPER_API_KEY"] = "your_key"`
 - start search server by double clicking it. Now you can use voice commands like these: `Please google who is Barack Obama` or `Пожалуйста погугли погоду в Москве`.
 
-## Building
+
+## Building, optional
 - for nvidia and Windows. Other systems - try yourself.
 - download https://www.libsdl.org/release/SDL2-devel-2.28.5-VC.zip extract to /whisper.cpp/SDL2/ folder
 - install libcurl using vcpkg:
@@ -123,7 +124,7 @@ Full list of commands and variations is in `talk-llama.cpp`, search `user_comman
 - Google something (погугли что-то)
 
 ## Bugs
-- Reset voice command won't work nice if  current context length is over --ctx_size
-- Rope context scaling is not working is it should
+- `Reset` voice command won't work nice if  current context length is over --ctx_size
+- Rope context scaling is not working nice
 - sometimes whisper is hallucinating, need to put hallucinations to stop-words. Check `misheard text` in `talk-llama.cpp`
 - don't put cyrillic (Russian) letters for character names, folder paths in .bat files, they may not work nice because of weird encoding. Use cmd instead if you need to use cyrillic letters.

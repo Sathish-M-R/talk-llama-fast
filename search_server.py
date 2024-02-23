@@ -10,9 +10,9 @@ import uvicorn
 #from langchain_community.utilities import GoogleSearchAPIWrapper
 from langchain_community.utilities import GoogleSerperAPIWrapper
 
-os.environ["GOOGLE_CSE_ID"] = "15453b1e4a3bf4b5c"                           # 100 requests per day
-os.environ["GOOGLE_API_KEY"] = "AIzaSyBCIG7OAp5dt2dVPL60ZJc5iJVsxLVp-ZQ"    #
-os.environ["SERPER_API_KEY"] = "cc487c7cb5c8c6eb997ed2ca91d9d03e2acad2f4"   # 2500 requests total. https://serper.dev/api-key
+os.environ["GOOGLE_CSE_ID"] = "your_key"                           # 100 requests per day
+os.environ["GOOGLE_API_KEY"] = "your_key"    #
+os.environ["SERPER_API_KEY"] = "your_key"   # 2500 requests total. https://serper.dev/api-key
 
 
 

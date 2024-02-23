@@ -29,7 +29,7 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 - Download /xtts directory from my repostory, keep the structure. Run xtts_streaming.bat to start xtts server.
 - Download whisper model to folder with talk-llama.exe https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin (for Russian) or https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin (for English). You can try small-q5 if you don't have much VRAM.
 - Download LLM to same folder https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q6_K.gguf , you can try q4_K_S if you don't have much VRAM.
-- Optional: ddit talk-llama.bat or talk-llama_ru.bat, change params if needed. Also check optional section below for speed-ups and google plugin.
+- Optional: edit talk-llama.bat or talk-llama_ru.bat, change params if needed. Also check optional section below for speed-ups and google plugin.
 - Click talk-llama.bat or talk-llama_ru.bat, start speaking.  
 
 ### Optional, stop xtts when user is speaking
@@ -115,3 +115,15 @@ del build\bin\Release\talk-llama.exe & cmake.exe --build build --config release
   --xtts-control-path FNAME  [c:\DATA\LLM\xtts\xtts_play_allowed.txt] path to xtts_play_allowed.txt  --google-url TEXT          [http://localhost:8003/] langchain google-serper server URL, with /
 ```
 
+## Voice commands:
+Full list is in talk-llama.cpp, search user_command.
+- Stop (остановись)
+- Regenerate (переделай)
+- Reset (удали все)
+- Google something (погугли что-то)
+
+## Bugs
+- Reset won't work nice if context length is over --ctx_size
+- Rope context scaling is not working is it should
+- sometimes whisper is hallucinating, need to put hallucinations to stop-words. Check `misheard text` in talk-llama.cpp
+- don't put cyrillic (Russian) letters for character names, folder paths in .bat files, they may not work nice because of weird encoding. Use cmd instead if you need to use cyrillic letters.

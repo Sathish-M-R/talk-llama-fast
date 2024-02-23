@@ -116,7 +116,7 @@ if (APPLE)
             message(STATUS "Accelerate framework found")
 
             set(WHISPER_EXTRA_LIBS  ${WHISPER_EXTRA_LIBS}  ${ACCELERATE_FRAMEWORK})
-            set(WHISPER_EXTRA_FLAGS ${WHISPER_EXTRA_FLAGS} -DGGML_USE_ACCELERATE -DACCELERATE_NEW_LAPACK -DACCELERATE_LAPACK_ILP64)
+            set(WHISPER_EXTRA_FLAGS ${WHISPER_EXTRA_FLAGS} -DGGML_USE_ACCELERATE)
         else()
             message(FATAL_ERROR "Accelerate framework not found")
         endif()
@@ -503,6 +503,7 @@ add_library(${TARGET}
     ${GGML_SOURCES_METAL}
     ${GGML_SOURCES_CUDA}
     ${GGML_SOURCES_OPENCL}
+    unicode.h
     whisper.h
     whisper.cpp
     )

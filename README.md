@@ -17,7 +17,7 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 - xTTSv2 server streaming-mode
 
 ## Requirements
-- Windows 11 x64
+- Windows 10/11 x64
 - nvidia 3060 12 GB vram, but i guess you can try with 8 GB. Also you can try to use CPU instead of GPU, but it will be slow (you need to build cpu version yourself).
 - For AMD, macos, linux, android - first you need to compile everything. I don't know if it works. 
 - Android version is TODO.

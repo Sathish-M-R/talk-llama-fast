@@ -35,12 +35,13 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 - Optional: edit talk-llama.bat or talk-llama_ru.bat, change params if needed (params description is below). Also check optional section below for speed-ups and google plugin.
 - Click talk-llama.bat or talk-llama_ru.bat, start speaking.  
 
-### Optional, stop xtts when user is speaking
+### Optional
+#### stop xtts when user is speaking
 - To stop playing XTTS: In talk-llama.bat change param --xtts-control-path to full path where you have xtts_play_allowed.txt
 - Then you need to modify c:\Users\[USERNAME]\miniconda3\Lib\site-packages\xtts_api_server\RealtimeTTS\text_to_stream.py
 - download /xtts/text_to_stream.py from my repo, compare its contents with original file (e.g. using notepad++ compare plugin), make changes. I will make automatic patcher later.
 
-## Optional, better coma handling for xtts
+#### Optional, better coma handling for xtts
 Better speech, but a little slower for first sentence:
 c:\Users\[USERNAME]\miniconda3\Lib\site-packages\stream2sentence\stream2sentence.py
 line 191, replace 
@@ -50,7 +51,7 @@ with
 sentence_delimiters = '.?!;:\n…)]}。'
 ```
 
-## Optional, google search plugin
+#### Optional, google search plugin
 - download search_server.py from my repo
 - install langchain: `pip install langchain`
 - sign up at https://serper.dev/api-key it is free and fast, it will give you 2500 free searches. Get an API key, paste it to search_server.py at line 15 `os.environ["SERPER_API_KEY"] = "your_key"`

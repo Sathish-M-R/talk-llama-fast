@@ -12,7 +12,7 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 - generation/tts interruption when user is speaking
 
 ## I used: 
-- whsiper-cpp ggml-medium-q5_0.bin
+- whisper-cpp ggml-medium-q5_0.bin
 - mistral-7b-instruct-v0.2.Q6_K.gguf
 - xTTSv2 server streaming-mode
 

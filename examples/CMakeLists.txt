@@ -23,6 +23,8 @@ endif()
 set(TARGET common)
 
 add_library(${TARGET} STATIC
+    console.h
+    console.cpp
     common.h
     common.cpp
     common-ggml.h
@@ -53,9 +55,6 @@ if (WHISPER_SDL2)
 
     set_target_properties(${TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 endif()
-
-# add json lib
-add_library(json_cpp INTERFACE json.hpp)
 
 # examples
 

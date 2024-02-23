@@ -131,4 +131,4 @@ Full list of commands and variations is in `talk-llama.cpp`, search `user_comman
 - `Reset` voice command won't work nice if  current context length is over --ctx_size
 - Rope context scaling is not working nice
 - sometimes whisper is hallucinating, need to put hallucinations to stop-words. Check `misheard text` in `talk-llama.cpp`
-- don't put cyrillic (Russian) letters for character names, folder paths in .bat files, they may not work nice because of weird encoding. Use cmd instead if you need to use cyrillic letters.
+- don't put cyrillic (Russian) letters for characters or paths in .bat files, they may not work nice because of weird encoding. Use cmd instead if you need to use cyrillic letters.

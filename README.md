@@ -12,12 +12,15 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 - generation/tts interruption when user is speaking
 
 ## I used: 
-- whisper-cpp ggml-medium-q5_0.bin
+- whisper.cpp ggml-medium-q5_0.bin
 - mistral-7b-instruct-v0.2.Q6_K.gguf
-- xTTSv2 server streaming-mode
+- xTTSv2 server in streaming-mode
+- langchain google-serper
+
 
 ## Requirements
 - Windows 10/11 x64
+- python, cuda
 - nvidia 3060 12 GB vram, but i guess you can try with 8 GB. Also you can try to use CPU instead of GPU, but it will be slow (you need to build cpu version yourself).
 - For AMD, macos, linux, android - first you need to compile everything. I don't know if it works. 
 - Android version is TODO.

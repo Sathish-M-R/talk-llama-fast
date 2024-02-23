@@ -1,4 +1,4 @@
-talk-llama-fast
+# talk-llama-fast
 
 Early pre beta!
 
@@ -16,32 +16,106 @@ i used:
 - mistral-7b-instruct-v0.2.Q6_K.gguf
 - xTTSv2 server streaming-mode
 
-NOTES:
-- It's just a proof of work.
-- Documentation is still TODO.
+## Notes
+- Everything is running on 3060 12 GB vram, but i guess you can try with 8 GB. You can try to use CPU instead of GPU, but it will be slow.
 - Android version is TODO.
+- Works nvidia CUDA for win x64, other systems - not tested. 
 
-Everything is running on 3060 12 GB vram, but i guess you can try with 8 GB. You can try to use CPU instead of GPU, but it will be slow.
+## Running
+### For Windows x64 with CUDA
+- Download anywhere all files from the latest release (Releases section is on the right)
+- install https://github.com/daswer123/xtts-api-server Use this manual: https://docs.sillytavern.app/extras/extensions/xtts/
+- Download /xtts directory from my repostory, keep the structure. Run xtts_streaming.bat to start xtts server.
+- Download whisper model to folder with talk-llama.exe https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin (for Russian) or https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin (for English). You can try small-q5 if you don't have much VRAM.
+- Download LLM to same folder https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q6_K.gguf , you can try q4_K_S if you don't have much VRAM.
+- Optional: Edit talk-llama.bat or talk-llama_ru.bat, change params if needed. Also check optional section below for speed-ups and google plugin.
+- Click talk-llama.bat or talk-llama_ru.bat, start speaking.  
 
+### For AMD, macos, linux, android
+- first you need to compile everything. I don't know if it works.
 
-I uploaded modified cpp files, but they still have some hardcoded paths (TODO), so i guess they won't work if you don't modify them manually
+### Optional, stop xtts when user is speaking
+- To stop playing XTTS: In talk-llama.bat change --xtts-control-path to full path where you have xtts_play_allowed.txt
+- Then modify c:\Users\[USERNAME]\miniconda3\Lib\site-packages\xtts_api_server\RealtimeTTS\text_to_stream.py
+```
+CODE here is TODO
+```
 
-I uploaded win64 exe and bat files in realeses. You can try, i don't know if they work, AND it still have some hardcoded paths (TODO, c:\\DATA\\LLM\\xtts\\xtts_play_allowed.txt)
-
-Google search server is based on langchain google-serp, i will upload source code later.
-
-
-[OTHER FILES fixes]
-
-xtts better coma handling:
-
+## Optional, better coma handling for xtts
+Better speech, but a little slower for first sentence:
 c:\Users\[username]\miniconda3\Lib\site-packages\stream2sentence\stream2sentence.py
-
 line 191, replace 
-
 ```
 sentence_delimiters = '.?!;:,\n…)]}。'
 with
 sentence_delimiters = '.?!;:\n…)]}。'
-sentences with real coma sound nicer
 ```
+
+## Optional, google search plugin
+- download search_server.py from my repo
+- install langchain `pip install langchain`
+- sign up at https://serper.dev/api-key it is free and fast, it will give you 2500 free searches. Get an API key, paste it to search_server.py in line 15 `os.environ["SERPER_API_KEY"] = "your_key"`
+- start search server by double clicking it. Now you can use voice commands like these: `Please google who is Barack Obama` or `Пожалуйста погугли погоду в Москве`.
+
+## Building
+- for nvidia and Windows. Other systems - try yourself.
+- download https://www.libsdl.org/release/SDL2-devel-2.28.5-VC.zip extract to /whisper.cpp/SDL2/ folder
+- install libcurl using vcpkg:
+```
+git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh
+./vcpkg integrate install
+vcpkg install curl[tool]
+```
+- Modify path `c:\\DATA\\Soft\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake` below to folder where you installed vcpkg. Then build.
+```
+git clone https://github.com/Mozer/talk-llama-fast
+cd talk-llama-fast
+set SDL2_DIR=SDL2\cmake
+cmake.exe -DWHISPER_SDL2=ON -DWHISPER_CUBLAS=1 -DCMAKE_TOOLCHAIN_FILE="c:\\DATA\\Soft\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake" -B build
+cmake.exe --build build --config release --target clean
+del build\bin\Release\talk-llama.exe & cmake.exe --build build --config release
+```
+
+
+## talk-llama.exe params
+```
+  -h,       --help           [default] show this help message and exit
+  -t N,     --threads N      [4      ] number of threads to use during computation
+  -vms N,   --voice-ms N     [10000  ] voice duration in milliseconds
+  -c ID,    --capture ID     [-1     ] capture device ID
+  -mt N,    --max-tokens N   [32     ] maximum number of tokens per audio chunk
+  -ac N,    --audio-ctx N    [0      ] audio context size (0 - all)
+  -ngl N,   --n-gpu-layers N [999    ] number of layers to store in VRAM
+  -vth N,   --vad-thold N    [0.60   ] voice activity detection threshold
+  -vlm N,   --vad-last-ms N  [0      ] vad min silence after speech, ms
+  -fth N,   --freq-thold N   [100.00 ] high-pass frequency cutoff
+  -su,      --speed-up       [false  ] speed up audio by x2 (reduced accuracy)
+  -tr,      --translate      [false  ] translate from source language to english
+  -ps,      --print-special  [false  ] print special tokens
+  -pe,      --print-energy   [false  ] print sound energy (for debugging)
+  -vp,      --verbose-prompt [false  ] print prompt at start
+  -ng,      --no-gpu         [false  ] disable GPU
+  -p NAME,  --person NAME    [Georgi ] person name (for prompt selection)
+  -bn NAME, --bot-name NAME  [LLaMA  ] bot name (to display)
+  -w TEXT,  --wake-command T [       ] wake-up command to listen for
+  -ho TEXT, --heard-ok TEXT  [       ] said by TTS before generating reply
+  -l LANG,  --language LANG  [en     ] spoken language
+  -mw FILE, --model-whisper  [models/ggml-base.en.bin] whisper model file
+  -ml FILE, --model-llama    [models/ggml-llama-7B.bin] llama model file
+  -s FILE,  --speak TEXT     [./examples/talk-llama/speak] command for TTS
+  --prompt-file FNAME        [       ] file with custom prompt to start dialog
+  --session FNAME                   file to cache model state in (may be large!) (default: none)
+  -f FNAME, --file FNAME     [       ] text output file name
+   --ctx_size N              [2048   ] Size of the prompt context
+  -n N, --n_predict N        [64     ] Number of tokens to predict
+  --temp N                   [0.90   ] Temperature
+  --top_k N                  [40.00  ] top_k
+  --top_p N                  [1.00   ] top_p
+  --repeat_penalty N         [1.10   ] repeat_penalty
+  --xtts-voice NAME          [emma_1 ] xtts voice without .wav
+  --xtts-url TEXT            [http://localhost:8020/] xtts/silero server URL, with trailing slash
+  --xtts-control-path FNAME  [c:\DATA\LLM\xtts\xtts_play_allowed.txt] path to xtts_play_allowed.txt  --google-url TEXT          [http://localhost:8003/] langchain google-serper server URL, with /
+```
+

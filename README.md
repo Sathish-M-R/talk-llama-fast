@@ -8,8 +8,8 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 - xTTSv2 support
 - UTF8 and Russian
 - Speed-ups: streaming for generation, streaming for xtts, aggresive VAD
-- commands: Google, stop, regenerate, reset
-- generation interruption when user is speaking
+- voice commands: Google, stop, regenerate, reset
+- generation/tts interruption when user is speaking
 
 ## I used: 
 - whsiper-cpp ggml-medium-q5_0.bin

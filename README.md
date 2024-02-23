@@ -116,14 +116,14 @@ del build\bin\Release\talk-llama.exe & cmake.exe --build build --config release
 ```
 
 ## Voice commands:
-Full list is in talk-llama.cpp, search user_command.
+Full list of commands and variations is in `talk-llama.cpp`, search `user_command`.
 - Stop (остановись)
 - Regenerate (переделай)
 - Reset (удали все)
 - Google something (погугли что-то)
 
 ## Bugs
-- Reset won't work nice if context length is over --ctx_size
+- Reset voice command won't work nice if  current context length is over --ctx_size
 - Rope context scaling is not working is it should
-- sometimes whisper is hallucinating, need to put hallucinations to stop-words. Check `misheard text` in talk-llama.cpp
+- sometimes whisper is hallucinating, need to put hallucinations to stop-words. Check `misheard text` in `talk-llama.cpp`
 - don't put cyrillic (Russian) letters for character names, folder paths in .bat files, they may not work nice because of weird encoding. Use cmd instead if you need to use cyrillic letters.

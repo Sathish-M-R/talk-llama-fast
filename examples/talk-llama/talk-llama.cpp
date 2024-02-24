@@ -652,6 +652,11 @@ std::string socket_post(const std::string &url, const std::map<std::string, std:
 // doesn't wait for responce
 void send_tts_async(std::string text, std::string speaker_wav="emma_1", std::string language="en", std::string tts_url="http://localhost:8020/")
 {
+	text = ::replace(text, "...", ".");
+	text = ::replace(text, "…", ".");
+	text = ::replace(text, "??", "?");
+	text = ::replace(text, "!!", "!");
+	text = ::replace(text, "?!", "?");
 	if (text.size() && text != "." && text != "," && text != "!" && text != "\n")
 	{
 		trim(text);
@@ -1070,7 +1075,7 @@ int run(int argc, const char ** argv) {
 				if (text_heard[0] == '.') text_heard.erase(0, 1);
 				if (text_heard[0] == '!') text_heard.erase(0, 1);
 				trim(text_heard);
-				if (text_heard == "!" || text_heard == "." || text_heard == "Sil" || text_heard == "Okay"  || text_heard == "Okay." || text_heard == "Thank you." || text_heard == "Thank you" || text_heard == "Thanks." || text_heard == "Bye." || text_heard == "Thank you for listening." || text_heard == "К" || text_heard == "Спасибо" || text_heard == params.bot_name || text_heard == "*Звук!*" || text_heard == "Р" || text_heard.find("Редактор субтитров")!= std::string::npos || text_heard.find("можешь это сделать")!= std::string::npos || text_heard.find("Как дела?")!= std::string::npos || text_heard.find("Это")!= std::string::npos || text_heard.find("Добро пожаловать")!= std::string::npos) text_heard = "";
+				if (text_heard == "!" || text_heard == "." || text_heard == "Sil" || text_heard == "Bye" || text_heard == "Okay" || text_heard == "Okay." || text_heard == "Thank you." || text_heard == "Thank you" || text_heard == "Thanks." || text_heard == "Bye." || text_heard == "Thank you for listening." || text_heard == "К" || text_heard == "Спасибо" || text_heard == params.bot_name || text_heard == "*Звук!*" || text_heard == "Р" || text_heard.find("Редактор субтитров")!= std::string::npos || text_heard.find("можешь это сделать")!= std::string::npos || text_heard.find("Как дела?")!= std::string::npos || text_heard.find("Это")!= std::string::npos || text_heard.find("Добро пожаловать")!= std::string::npos) text_heard = "";
 				text_heard = std::regex_replace(text_heard, std::regex("\\s+$"), ""); // trailing whitespace
 
 				
@@ -1094,8 +1099,8 @@ int run(int argc, const char ** argv) {
 				
 				if (text_heard_trimmed.find("regenerate") != std::string::npos || text_heard_trimmed.find("Переделай") != std::string::npos || text_heard_trimmed.find("егенерируй") != std::string::npos || text_heard_trimmed.find("егенерировать") != std::string::npos) user_command = "regenerate";
 				else if (text_heard_trimmed.find("google") != std::string::npos || text_heard_trimmed.find("Погугли") != std::string::npos || text_heard_trimmed.find("Пожалуйста, погугли") != std::string::npos || text_heard_trimmed.find("По гугл") != std::string::npos) user_command = "google";
-				else if (text_heard_trimmed.find("reset") != std::string::npos || text_heard_trimmed.find("Сброс") != std::string::npos || text_heard_trimmed.find("Сбросить") != std::string::npos || text_heard_trimmed.find("Удали все") != std::string::npos || text_heard_trimmed.find("Удалить все") != std::string::npos) user_command = "reset";
-				else if (text_heard_trimmed.find("delete") != std::string::npos || text_heard_trimmed.find("delete everything") != std::string::npos || text_heard_trimmed.find("Удали") != std::string::npos || text_heard_trimmed.find("Удалить сообщение") != std::string::npos || text_heard_trimmed.find("Удали сообщение") != std::string::npos || text_heard_trimmed.find("Удали два сообщения") != std::string::npos || text_heard_trimmed.find("Удали три сообщения") != std::string::npos) user_command = "delete";
+				else if (text_heard_trimmed.find("reset") != std::string::npos || text_heard_trimmed.find("delete everything") != std::string::npos || text_heard_trimmed.find("Сброс") != std::string::npos || text_heard_trimmed.find("Сбросить") != std::string::npos || text_heard_trimmed.find("Удали все") != std::string::npos || text_heard_trimmed.find("Удалить все") != std::string::npos) user_command = "reset";
+				else if (text_heard_trimmed.find("delete") != std::string::npos || text_heard_trimmed.find("please do it") != std::string::npos || text_heard_trimmed.find("Удали") != std::string::npos || text_heard_trimmed.find("Удалить сообщение") != std::string::npos || text_heard_trimmed.find("Удали сообщение") != std::string::npos || text_heard_trimmed.find("Удали два сообщения") != std::string::npos || text_heard_trimmed.find("Удали три сообщения") != std::string::npos) user_command = "delete";
 				else if (text_heard_trimmed.find("stop") != std::string::npos || text_heard_trimmed.find("Стоп") != std::string::npos || text_heard_trimmed.find("Остановись") != std::string::npos || text_heard_trimmed.find("тановись") != std::string::npos || text_heard_trimmed.find("Хватит") != std::string::npos || text_heard_trimmed.find("Становись") != std::string::npos) user_command = "stop";
 				
 				// user has finished speaking, xtts can play
@@ -1107,6 +1112,7 @@ int run(int argc, const char ** argv) {
 					//printf("new_command_allowed: %d\n", new_command_allowed);
 				}
 				
+				// REGEN
 				if (user_command == "regenerate" || text_heard_trimmed == "Please regenerate" || text_heard_trimmed == "Regenerate please" || text_heard_trimmed == "Regenerate, please" || text_heard_trimmed == "Try again please" || text_heard_trimmed == "Try again, please" || text_heard_trimmed == "Please try again" || text_heard_trimmed == "Try again") 
 				{
 					if (new_command_allowed)
@@ -1130,18 +1136,19 @@ int run(int argc, const char ** argv) {
 						}						
 					}
 				}
+				// DELETE
 				else if (user_command == "delete" || text_heard_trimmed == "Please delete" || text_heard_trimmed == "Please delete the last message" || text_heard_trimmed == "Delete please" || text_heard_trimmed == "Delete, please") 
 				{
 					if (new_command_allowed) // delete prev user question and llama reply, then dont do anything
 					{
 						if (!past_prev_arr.empty())
 						{
-							if (text_heard_trimmed == "Удали 2 сообщения" || text_heard_trimmed == "Удали два сообщения")
+							if (text_heard_trimmed == "delete two messages" || text_heard_trimmed == "Удали 2 сообщения" || text_heard_trimmed == "Удали два сообщения")
 							{
 								n_past_prev = past_prev_arr.back();
 								past_prev_arr.pop_back();
 							}
-							else if (text_heard_trimmed == "Удали 3 сообщения" || text_heard_trimmed == "Удали три сообщения")
+							else if (text_heard_trimmed == "delete three messages" || text_heard_trimmed == "Удали 3 сообщения" || text_heard_trimmed == "Удали три сообщения")
 							{
 								n_past_prev = past_prev_arr.back();
 								past_prev_arr.pop_back();
@@ -1154,14 +1161,13 @@ int run(int argc, const char ** argv) {
 							int rollback_num = embd_inp.size()-n_past_prev;
 							if (rollback_num)
 							{
-								printf("deleting %d tokens\n", rollback_num);						
+								printf(" deleting %d tokens\n", rollback_num);						
 								embd_inp.erase(embd_inp.end() - rollback_num, embd_inp.end());						
 								n_past -= rollback_num;
 								text_heard = "";
 								text_heard_trimmed = "";
 								send_tts_async("Deleted", params.xtts_voice, params.language, params.xtts_url);
 								last_command_time = std::time(0);
-								//printf("last_command_time: %d\n", last_command_time);
 								new_command_allowed = 0;
 							}
 						}
@@ -1174,6 +1180,7 @@ int run(int argc, const char ** argv) {
 					audio.clear();
 					//continue;
 				}
+				// RESET
 				else if (user_command == "reset") 
 				{
 					if (new_command_allowed)
@@ -1186,7 +1193,7 @@ int run(int argc, const char ** argv) {
 							int rollback_num = embd_inp.size()-n_past_prev;
 							if (rollback_num)
 							{
-								printf("Reset. deleting %d tokens\n", rollback_num);						
+								printf(" Reset. deleting %d tokens\n", rollback_num);						
 								embd_inp.erase(embd_inp.end() - rollback_num, embd_inp.end());						
 								n_past -= rollback_num;
 								text_heard = "";
@@ -1204,11 +1211,13 @@ int run(int argc, const char ** argv) {
 					audio.clear();
 					continue;
 				}
+				// STOP
 				else if (user_command == "stop") 
 				{
 					printf(" Stopped!\n");
 					audio.clear();
 				}
+				// GOOGLE
 				else if (user_command == "google") 
 				{
 					std::string q = ParseCommandAndGetKeyword(text_heard_trimmed);
@@ -1227,7 +1236,6 @@ int run(int argc, const char ** argv) {
 							google_resp = "Google: "+google_resp+" .";
 							text_heard += "\n"+google_resp;
 							
-							fprintf(stdout, " [before goo [%d] (%s)]\n", thread_i, google_resp.c_str());
 							if (google_resp.size()) 
 							{
 								threads.emplace_back([&] // creates and starts a thread
@@ -1236,9 +1244,8 @@ int run(int argc, const char ** argv) {
 								});
 								thread_i++;
 							}
-							fprintf(stdout," [after goo] ");
 						}
-						printf("bad google resp, check that langchain server is ok");
+						printf("bad google resp for (%s), check that langchain server is ok",q.c_str());
 					}
 					else fprintf(stdout, "can't get search keyword from text_heard_trimmed: %s\n", text_heard_trimmed.c_str());
 				}
@@ -1290,7 +1297,7 @@ int run(int argc, const char ** argv) {
 					threads.clear();
 					printf("]");
 				}
-				if (thread_i >= 50) thread_i = 0; // rotation
+				if (thread_i >= 80) thread_i = 0; // rotation
 				
 				
 

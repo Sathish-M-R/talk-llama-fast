@@ -732,6 +732,7 @@ void high_pass_filter(std::vector<float> & data, float cutoff, float sample_rate
     }
 }
 
+// OLD
 bool vad_simple(std::vector<float> & pcmf32, int sample_rate, int last_ms, float vad_thold, float freq_thold, bool verbose) {
     const int n_samples      = pcmf32.size();
     const int n_samples_last = (sample_rate * last_ms) / 1000;
@@ -802,15 +803,21 @@ int vad_simple_int(std::vector<float> & pcmf32, int sample_rate, int last_ms, fl
         fprintf(stderr, "%s: energy_all: %f, energy_last: %f, vad_thold: %f, freq_thold: %f\n", __func__, energy_all, energy_last, vad_thold, freq_thold);
     }
 
-    if (energy_last > vad_thold*energy_all) {
-		if (vad_start_thold && energy_last > vad_start_thold) 
-		{
-			if (verbose) printf("[speech_start!]: energy_last > %f\n", vad_start_thold);
-			return 1;
-		}
-        return 0;
-    } 
+	// speech started
+    if (vad_start_thold && energy_last > vad_start_thold) 
+	{
+		if (verbose) printf("[speech started!]: energy_last > %f\n", vad_start_thold);
+		return 1;
+	}
+	
+	// speech is going on
+	if (energy_last > vad_thold*energy_all) 
+	{	
+        return 0; 
+    }
+	if (verbose) printf("[speech end]: energy_last < %f\n", vad_thold*energy_all);
 
+	// speech is ended
     return 2;
 }
 

@@ -1240,6 +1240,11 @@ int run(int argc, const char ** argv) {
 				{
 					printf(" Stopped!\n");
 					audio.clear();
+					text_heard = "";
+					text_heard_trimmed = "";
+					audio.clear();
+					allow_xtts_file(params.xtts_control_path, 0);
+					continue;
 				}
 				// GOOGLE
 				else if (user_command == "google") 

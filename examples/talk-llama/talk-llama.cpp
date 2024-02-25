@@ -15,7 +15,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include <regex>
 #include <sstream>
 
 #include <iostream>
@@ -95,6 +94,8 @@ struct whisper_params {
     bool no_timestamps  = true;
     bool verbose_prompt = false;
     bool use_gpu        = true;
+    bool allow_newline  = false;
+    bool multi_chars    = false;
 
     std::string person      = "Georgi";
     std::string bot_name    = "LLaMA";
@@ -164,6 +165,8 @@ bool whisper_params_parse(int argc, const char ** argv, whisper_params & params)
         else if (arg == "--xtts-url")                        { params.xtts_url = argv[++i]; }
         else if (arg == "--google-url")                      { params.google_url = argv[++i]; }
         else if (arg == "--xtts-control-path")               { params.xtts_control_path = argv[++i]; }
+        else if (arg == "--allow-newline")                   { params.allow_newline = true; }
+        else if (arg == "--multi-chars")                     { params.multi_chars = true; }
         else if (arg == "--prompt-file")                     {
             std::ifstream file(argv[++i]);
             std::copy(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>(), back_inserter(params.prompt));
@@ -226,6 +229,8 @@ void whisper_print_usage(int /*argc*/, const char ** argv, const whisper_params 
 	fprintf(stderr, "  --xtts-url TEXT            [%-7s] xtts/silero server URL, with trailing slash\n", params.xtts_url.c_str());
 	fprintf(stderr, "  --xtts-control-path FNAME  [%-7s] path to xtts_play_allowed.txt",                 params.xtts_control_path.c_str());
 	fprintf(stderr, "  --google-url TEXT          [%-7s] langchain google-serper server URL, with /\n",  params.google_url.c_str());
+	fprintf(stderr, "  --allow-newline            [%-7s] allow new line in llama output",                params.allow_newline ? "true" : "false");
+	fprintf(stderr, "  --multi-chars              [%-7s] xtts will use same wav name as in llama output",params.multi_chars ? "true" : "false");
     fprintf(stderr, "\n");
 }
 
@@ -661,6 +666,10 @@ void send_tts_async(std::string text, std::string speaker_wav="emma_1", std::str
 	text = ::replace(text, "??", "?");
 	text = ::replace(text, "!!", "!");
 	text = ::replace(text, "?!", "?");
+	if (text == speaker_wav+": ") text = "";
+	else if (text == speaker_wav+":") text = "";
+	trim(text);
+	if (text.back() == ':' && text.length() < 15 && text.find(' ') == std::string::npos) text = "";
 	if (text.size() && text != "." && text != "," && text != "!" && text != "\n")
 	{
 		trim(text);
@@ -711,6 +720,7 @@ void send_tts_async(std::string text, std::string speaker_wav="emma_1", std::str
 }
 
 const std::string k_prompt_whisper = R"(A conversation with a person called {1}.)";
+const std::string k_prompt_whisper_ru = R"(Разговор c человеком по имени {1}.)";
 
 const std::string k_prompt_llama = R"(Text transcript of a never ending dialog, where {0} interacts with an AI assistant named {1}.
 {1} is helpful, kind, honest, friendly, good at writing and never fails to answer {0}’s requests immediately and with details and precision.
@@ -831,7 +841,7 @@ int run(int argc, const char ** argv) {
     std::vector<float> pcmf32_prompt;
 
 	std::string prompt_whisper;
-	if (params.language == "ru") std::string prompt_whisper = ::replace(k_prompt_whisper, "{1}", "Анна"); // Алиса is bad
+	if (params.language == "ru") std::string prompt_whisper = ::replace(k_prompt_whisper_ru, "{1}", "Анна"); // Алиса is bad
 	else std::string prompt_whisper = ::replace(k_prompt_whisper, "{1}", params.bot_name);
 
     // construct the initial prompt for LLaMA inference
@@ -982,12 +992,13 @@ int run(int argc, const char ** argv) {
 	std::string google_resp;
 	
 	int last_command_time = 0;
+	std::string current_voice = params.xtts_voice;
 	
     // reverse prompts for detecting when it's time to stop speaking
     std::vector<std::string> antiprompts = {
-        params.person + chat_symb,
-        "\n"
+        params.person + chat_symb
     };
+	if (params.allow_newline) antiprompts.push_back("\n");
 
     // main loop	
     while (is_running) {
@@ -1037,7 +1048,7 @@ int run(int argc, const char ** argv) {
                         text_heard += words[i] + " ";
                     }
                 }				
-				//fprintf(stdout, " [text_heard: (%s)]\n", text_heard.c_str());
+				if (params.print_energy) fprintf(stdout, " [text_heard: (%s)]\n", text_heard.c_str());
 				
 				
                 // check if audio starts with the wake-up command if enabled
@@ -1263,6 +1274,10 @@ int run(int argc, const char ** argv) {
 					else fprintf(stdout, "can't get search keyword from text_heard_trimmed: %s\n", text_heard_trimmed.c_str());
 				}
 				
+				current_voice = params.xtts_voice;
+				
+				
+				// LLAMA
 
                 const std::vector<llama_token> tokens = llama_tokenize(ctx_llama, text_heard.c_str(), false);
 
@@ -1272,7 +1287,7 @@ int run(int argc, const char ** argv) {
 
                     continue;
                 }
-				printf("  [t: %zu] ", embd_inp.size());
+				
                 force_speak = false;
 
 				text_heard_prev = text_heard;
@@ -1283,7 +1298,7 @@ int run(int argc, const char ** argv) {
                 if (last_output_has_username) text_heard.insert(0, 1, ' ');
                 else text_heard.insert(0, "\n"+params.person + chat_symb + " ");
                 text_heard += "\n" + params.bot_name + chat_symb;
-                fprintf(stdout, "%s%s%s", "\033[1m", text_heard.c_str(), "\033[0m");
+                fprintf(stdout, "%s%s%s", "\033[1m", text_heard.c_str(), "\033[0m");				
                 fflush(stdout);
 				
                 embd = ::llama_tokenize(ctx_llama, text_heard, false);
@@ -1462,7 +1477,7 @@ int run(int argc, const char ** argv) {
 										{
 											if (text_to_speak_arr[thread_i-1].size())
 											{
-												send_tts_async(text_to_speak_arr[thread_i-1], params.xtts_voice, params.language, params.xtts_url);
+												send_tts_async(text_to_speak_arr[thread_i-1], current_voice, params.language, params.xtts_url);
 												text_to_speak_arr[thread_i-1] = "";
 											}
 										});
@@ -1507,7 +1522,25 @@ int run(int argc, const char ** argv) {
 						last_output_has_username = false;
                         for (std::string & antiprompt : antiprompts) 
 						{
-                            if (last_output.find(antiprompt.c_str(), last_output.length() - antiprompt.length(), antiprompt.length()) != std::string::npos) {
+							// multiple characters for xtts
+							if (params.multi_chars)
+							{
+								std::smatch matches;
+								std::regex r("\n([^:]*):", std::regex::icase | std::regex::optimize);		
+								// new char found, will use its voice in TTS							
+								if (std::regex_search(last_output, matches, r) && !matches[1].str().empty() && matches[1].str() != params.person) 
+								{
+									//printf("new char found: %s\n", current_voice);
+									current_voice = matches[1].str();									
+									//text_to_speak = ::replace(text_to_speak, current_voice+": ", ""); // not working with UTF8									
+									std::regex regEx(current_voice+":");
+									text_to_speak = std::regex_replace(text_to_speak, regEx, "");
+								}
+							}
+							
+							// stop words
+                            if (last_output.find(antiprompt.c_str(), last_output.length() - antiprompt.length(), antiprompt.length()) != std::string::npos) 
+							{
                                 done = true;
                                 text_to_speak = ::replace(text_to_speak, antiprompt, "");
                                 fflush(stdout);
@@ -1517,6 +1550,7 @@ int run(int argc, const char ** argv) {
 									last_output_has_username = true;
 								}
 								//printf("antiprompt: %s\n", antiprompt.c_str());
+								
                                 break;
                             }
 							i_antiprompt++;
@@ -1541,7 +1575,7 @@ int run(int argc, const char ** argv) {
 						{
 							if (text_to_speak_arr[thread_i-1].size())
 							{
-								send_tts_async(text_to_speak_arr[thread_i-1], params.xtts_voice, params.language, params.xtts_url);
+								send_tts_async(text_to_speak_arr[thread_i-1], current_voice, params.language, params.xtts_url);
 								text_to_speak_arr[thread_i-1] = "";
 							}
 						});	
@@ -1552,7 +1586,7 @@ int run(int argc, const char ** argv) {
 						std::cerr << "[Exception]: Failed to emplace fin thread: " << ex.what() << '\n'; 
 					}
 				}
-				
+				if ((embd_inp.size() % 10) == 0) printf("\n [t: %zu]\n", embd_inp.size());
                 audio.clear();
             }
         }
@@ -1569,16 +1603,9 @@ int run(int argc, const char ** argv) {
     return 0;
 }
 
-//#ifdef WIN32
-//	// Initialize Winsock
-//	WORD ver = MAKEWORD(2 , 2);
-//	WSADATA dat;
-//    int wsastartup = WSAStartup(ver, &dat);
-//#endif
 	
 #if _WIN32
 int wmain(int argc, const wchar_t ** argv_UTF16LE) {
-	//setlocale(LC_ALL,"Russian");
 	console::init(true, true);
     atexit([]() { console::cleanup(); });
     std::vector<std::string> buffer(argc);

@@ -8,7 +8,7 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 - xTTSv2 support
 - UTF8 and Russian
 - Speed-ups: streaming for generation, streaming for xtts, aggresive VAD
-- voice commands: Google, stop, regenerate, reset
+- voice commands: Google, stop, regenerate, delete, reset
 - generation/tts interruption when user is speaking
 
 ## I used: 
@@ -17,11 +17,15 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 - xTTSv2 server in streaming-mode
 - langchain google-serper
 
+## News
+- 2024.02.25 - I added `--vad-start-thold` param for tuning stop on speech detection (0.000270: default, 0 to turn off). VAD checks current noise level, if it is loud - xtts and llama stops. Turn it up if you are in a noisy room, also check `--print-energy`
+- 2024.02.22 - initial public release
+
 
 ## Requirements
 - Windows 10/11 x64
 - python, cuda
-- nvidia 3060 12 GB vram, but i guess you can try with 8 GB. Also you can try to use CPU instead of GPU, but it will be slow (you need to build cpu version yourself).
+- nvidia GPU with 12 GB vram, but i guess you can try with 8 GB. Also you can try to use CPU instead of GPU, but it will be slow (you need to build cpu version yourself).
 - For AMD, macos, linux, android - first you need to compile everything. I don't know if it works. 
 - Android version is TODO.
 
@@ -89,7 +93,8 @@ del build\bin\Release\talk-llama.exe & cmake.exe --build build --config release
   -mt N,    --max-tokens N   [32     ] maximum number of tokens per audio chunk
   -ac N,    --audio-ctx N    [0      ] audio context size (0 - all)
   -ngl N,   --n-gpu-layers N [999    ] number of layers to store in VRAM
-  -vth N,   --vad-thold N    [0.60   ] voice activity detection threshold
+  -vth N,   --vad-thold N    [0.60   ] voice avg activity detection threshold
+  -vths N,  --vad-start-thold N [0.000270] vad min level to stop tts, 0: off, 0.000270: default
   -vlm N,   --vad-last-ms N  [0      ] vad min silence after speech, ms
   -fth N,   --freq-thold N   [100.00 ] high-pass frequency cutoff
   -su,      --speed-up       [false  ] speed up audio by x2 (reduced accuracy)
@@ -117,14 +122,17 @@ del build\bin\Release\talk-llama.exe & cmake.exe --build build --config release
   --repeat_penalty N         [1.10   ] repeat_penalty
   --xtts-voice NAME          [emma_1 ] xtts voice without .wav
   --xtts-url TEXT            [http://localhost:8020/] xtts/silero server URL, with trailing slash
-  --xtts-control-path FNAME  [c:\DATA\LLM\xtts\xtts_play_allowed.txt] path to xtts_play_allowed.txt  --google-url TEXT          [http://localhost:8003/] langchain google-serper server URL, with /
+  --xtts-control-path FNAME  [c:\DATA\LLM\xtts\xtts_play_allowed.txt] path to xtts_play_allowed.txt  
+  --google-url TEXT          [http://localhost:8003/] langchain google-serper server URL, with /
 ```
 
 ## Voice commands:
 Full list of commands and variations is in `talk-llama.cpp`, search `user_command`.
 - Stop (остановись)
-- Regenerate (переделай)
-- Reset (удали все)
+- Regenerate (переделай) - will regenerate llama answer
+- Delete (удали) - will delete user question and llama answer.
+- Delete 3 messages (удали 3 сообщениия)
+- Reset (удали все) - will delete all context except for a initial prompt
 - Google something (погугли что-то)
 
 ## Bugs

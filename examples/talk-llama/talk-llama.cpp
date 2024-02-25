@@ -84,6 +84,7 @@ struct whisper_params {
     int32_t n_gpu_layers = 999;
 
     float vad_thold  = 0.6f;
+    float vad_start_thold  = 0.000270f; // 0 to turn off, you can see your current energy_last (loudness level) when running with --print-energy param
     float vad_last_ms  = 1250;
     float freq_thold = 100.0f;
 
@@ -135,7 +136,8 @@ bool whisper_params_parse(int argc, const char ** argv, whisper_params & params)
         else if (arg == "-ac"  || arg == "--audio-ctx")      { params.audio_ctx      = std::stoi(argv[++i]); }
         else if (arg == "-ngl" || arg == "--n-gpu-layers")   { params.n_gpu_layers   = std::stoi(argv[++i]); }
         else if (arg == "-vth" || arg == "--vad-thold")      { params.vad_thold      = std::stof(argv[++i]); }
-        else if (arg == "-vlm" || arg == "--vad-last-ms")    { params.vad_last_ms    = std::stoi(argv[++i]); }
+        else if (arg == "-vths"|| arg == "--vad-start-thold"){ params.vad_start_thold= std::stof(argv[++i]); }
+		else if (arg == "-vlm" || arg == "--vad-last-ms")    { params.vad_last_ms    = std::stoi(argv[++i]); }
         else if (arg == "-fth" || arg == "--freq-thold")     { params.freq_thold     = std::stof(argv[++i]); }
         else if (arg == "-su"  || arg == "--speed-up")       { params.speed_up       = true; }
         else if (arg == "-tr"  || arg == "--translate")      { params.translate      = true; }
@@ -193,7 +195,8 @@ void whisper_print_usage(int /*argc*/, const char ** argv, const whisper_params 
     fprintf(stderr, "  -mt N,    --max-tokens N   [%-7d] maximum number of tokens per audio chunk\n",    params.max_tokens);
     fprintf(stderr, "  -ac N,    --audio-ctx N    [%-7d] audio context size (0 - all)\n",                params.audio_ctx);
     fprintf(stderr, "  -ngl N,   --n-gpu-layers N [%-7d] number of layers to store in VRAM\n",           params.n_gpu_layers);
-    fprintf(stderr, "  -vth N,   --vad-thold N    [%-7.2f] voice activity detection threshold\n",        params.vad_thold);
+    fprintf(stderr, "  -vth N,   --vad-thold N    [%-7.2f] voice avg activity detection threshold\n",    params.vad_thold);
+	fprintf(stderr, "  -vths N,  --vad-start-thold N [%-7.6f] vad min level to stop tts, 0: off, 0.000270: default\n",params.vad_start_thold);
     fprintf(stderr, "  -vlm N,   --vad-last-ms N  [%-7d] vad min silence after speech, ms\n",       	 params.vad_last_ms);
     fprintf(stderr, "  -fth N,   --freq-thold N   [%-7.2f] high-pass frequency cutoff\n",                params.freq_thold);
     fprintf(stderr, "  -su,      --speed-up       [%-7s] speed up audio by x2 (reduced accuracy)\n",     params.speed_up ? "true" : "false");
@@ -653,6 +656,7 @@ std::string socket_post(const std::string &url, const std::map<std::string, std:
 void send_tts_async(std::string text, std::string speaker_wav="emma_1", std::string language="en", std::string tts_url="http://localhost:8020/")
 {
 	text = ::replace(text, "...", ".");
+	text = ::replace(text, "..", ".");
 	text = ::replace(text, "…", ".");
 	text = ::replace(text, "??", "?");
 	text = ::replace(text, "!!", "!");
@@ -746,11 +750,16 @@ int run(int argc, const char ** argv) {
 	std::ifstream readStream{fileName};	
 	if(!readStream.good()){
 		printf("Warning: %s file not found, xtts wont stop on user speech without it\n", params.xtts_control_path.c_str());
+		readStream.close();
 	}
-	readStream.close();
+	else // control file is ok
+	{
+		readStream.close();
+		allow_xtts_file(params.xtts_control_path, 1); // xtts can play
+	}
+	
 
     // whisper init
-
     struct whisper_context_params cparams = whisper_context_default_params();
     cparams.use_gpu = params.use_gpu;
 
@@ -937,6 +946,7 @@ int run(int argc, const char ** argv) {
     // initial prompt so it doesn't need to be an exact match.
     bool need_to_save_session = !path_session.empty() && n_matching_session_tokens < (embd_inp.size() * 3 / 4);
 
+    //printf("params.vad_start_thold: %f\n", params.vad_start_thold);
     printf("%s : done! start speaking in the microphone\n", __func__);
 
     // show wake command if enabled
@@ -996,9 +1006,9 @@ int run(int argc, const char ** argv) {
         {
             audio.get(2000, pcmf32_cur);
 			// WHISPER_SAMPLE_RATE 16000
-			//int vad_result = ::vad_simple(pcmf32_cur, WHISPER_SAMPLE_RATE, 1250, params.vad_thold, params.freq_thold, params.print_energy);
-			int vad_result = ::vad_simple(pcmf32_cur, WHISPER_SAMPLE_RATE, params.vad_last_ms, params.vad_thold, params.freq_thold, params.print_energy);
-			if (vad_result == 1) // speech started
+			int vad_result = ::vad_simple_int(pcmf32_cur, WHISPER_SAMPLE_RATE, params.vad_last_ms, params.vad_thold, params.freq_thold, params.print_energy, params.vad_start_thold);
+			//printf("\n START VAD: %d\n", vad_result);
+			if (vad_result == 1 && params.vad_start_thold) // speech started
 			{
 				// user has started speaking, xtts cannot play
 				//fprintf(stdout, "%s: Speech start! ...\n", __func__);
@@ -1103,8 +1113,11 @@ int run(int argc, const char ** argv) {
 				else if (text_heard_trimmed.find("delete") != std::string::npos || text_heard_trimmed.find("please do it") != std::string::npos || text_heard_trimmed.find("Удали") != std::string::npos || text_heard_trimmed.find("Удалить сообщение") != std::string::npos || text_heard_trimmed.find("Удали сообщение") != std::string::npos || text_heard_trimmed.find("Удали два сообщения") != std::string::npos || text_heard_trimmed.find("Удали три сообщения") != std::string::npos) user_command = "delete";
 				else if (text_heard_trimmed.find("stop") != std::string::npos || text_heard_trimmed.find("Стоп") != std::string::npos || text_heard_trimmed.find("Остановись") != std::string::npos || text_heard_trimmed.find("тановись") != std::string::npos || text_heard_trimmed.find("Хватит") != std::string::npos || text_heard_trimmed.find("Становись") != std::string::npos) user_command = "stop";
 				
-				// user has finished speaking, xtts can play
-				allow_xtts_file(params.xtts_control_path, 1);
+				if (params.vad_start_thold)
+				{
+					// user has finished speaking, xtts can play
+					allow_xtts_file(params.xtts_control_path, 1);
+				}
 				
 				if (user_command.size() && !new_command_allowed && std::time(0)-last_command_time >= 1) 
 				{
@@ -1445,7 +1458,7 @@ int run(int argc, const char ** argv) {
 									text_to_speak_arr[thread_i] = text_to_speak;
 									try 
 									{
-										threads.emplace_back([&] // creates and starts a thread. crashes after 100 threads
+										threads.emplace_back([&] // creates and starts a thread, threads are cleaned after user ends speech, after 80 threads
 										{
 											if (text_to_speak_arr[thread_i-1].size())
 											{
@@ -1460,16 +1473,23 @@ int run(int argc, const char ** argv) {
 										std::cerr << "[Exception]: Failed to push_back mid thread: " << ex.what() << '\n';
 									}
 									
-									// check if user is speaking after each sentence. Good for 'stop' command, but it doesn't call whisper recognition. 'Stop' -> wait 1s -> ask question
-									audio.get(500, pcmf32_cur); // 0.5s?
-									int vad_result = ::vad_simple(pcmf32_cur, WHISPER_SAMPLE_RATE, params.vad_last_ms, params.vad_thold, params.freq_thold, params.print_energy);
-									if (vad_result == 1) // speech started
+									// STOP on speech for llama
+									if (params.vad_start_thold)
 									{
-										// user has started speaking, xtts cannot play
-										fprintf(stdout, " [Speech detected! Aborting ...]\n");
-										allow_xtts_file(params.xtts_control_path, 0);
-										done = true; // generation stops
-										break;
+										//printf("\nin STOP on speech\n");
+										// after each sentence
+										// check energy level, if user is speaking (it doesn't call whisper recognition, just a loud noise will stop everything)
+										audio.get(2000, pcmf32_cur); // 2s?
+										int vad_result = ::vad_simple_int(pcmf32_cur, WHISPER_SAMPLE_RATE, params.vad_last_ms, params.vad_thold, params.freq_thold, params.print_energy, params.vad_start_thold);
+										//printf("\n VAD: %d\n", vad_result);
+										if (vad_result == 1) // speech started
+										{
+											// user has started speaking, xtts cannot play
+											printf(" [Speech detected! Aborting ...]\n");
+											allow_xtts_file(params.xtts_control_path, 0);
+											done = true; // llama generation stops
+											break;
+										}
 									}
 								}
 							}			   

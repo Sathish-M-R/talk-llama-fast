@@ -670,7 +670,7 @@ void send_tts_async(std::string text, std::string speaker_wav="emma_1", std::str
 	else if (text == speaker_wav+":") text = "";
 	trim(text);
 	if (text.back() == ':' && text.length() < 15 && text.find(' ') == std::string::npos) text = "";
-	if (text.size() && text != "." && text != "," && text != "!" && text != "\n")
+	if (text.size()>=1 && text != "." && text != "," && text != "!" && text != "\n")
 	{
 		trim(text);
 		text = ::replace(text, "\r", "");
@@ -720,7 +720,7 @@ void send_tts_async(std::string text, std::string speaker_wav="emma_1", std::str
 }
 
 const std::string k_prompt_whisper = R"(A conversation with a person called {1}.)";
-const std::string k_prompt_whisper_ru = R"(Разговор c человеком по имени {1}.)";
+const std::string k_prompt_whisper_ru = R"({1}, Алиса.)";
 
 const std::string k_prompt_llama = R"(Text transcript of a never ending dialog, where {0} interacts with an AI assistant named {1}.
 {1} is helpful, kind, honest, friendly, good at writing and never fails to answer {0}’s requests immediately and with details and precision.
@@ -1096,7 +1096,7 @@ int run(int argc, const char ** argv) {
 				if (text_heard[0] == '.') text_heard.erase(0, 1);
 				if (text_heard[0] == '!') text_heard.erase(0, 1);
 				trim(text_heard);
-				if (text_heard == "!" || text_heard == "." || text_heard == "Sil" || text_heard == "Bye" || text_heard == "Okay" || text_heard == "Okay." || text_heard == "Thank you." || text_heard == "Thank you" || text_heard == "Thanks." || text_heard == "Bye." || text_heard == "Thank you for listening." || text_heard == "К" || text_heard == "Спасибо" || text_heard == params.bot_name || text_heard == "*Звук!*" || text_heard == "Р" || text_heard.find("Редактор субтитров")!= std::string::npos || text_heard.find("можешь это сделать")!= std::string::npos || text_heard.find("Как дела?")!= std::string::npos || text_heard.find("Это")!= std::string::npos || text_heard.find("Добро пожаловать")!= std::string::npos) text_heard = "";
+				if (text_heard == "!" || text_heard == "." || text_heard == "Sil" || text_heard == "Bye" || text_heard == "Okay" || text_heard == "Okay." || text_heard == "Thank you." || text_heard == "Thank you" || text_heard == "Thanks." || text_heard == "Bye." || text_heard == "Thank you for listening." || text_heard == "К" || text_heard == "Спасибо" || text_heard == params.bot_name || text_heard == "*Звук!*" || text_heard == "Р" || text_heard.find("Редактор субтитров")!= std::string::npos || text_heard.find("можешь это сделать")!= std::string::npos || text_heard.find("Как дела?")!= std::string::npos || text_heard.find("Это")!= std::string::npos || text_heard.find("Добро пожаловать")!= std::string::npos || text_heard.find("Спасибо за внимание")!= std::string::npos || text_heard.find("Будьте здоровы")!= std::string::npos || text_heard.find("Продолжение следует")!= std::string::npos) text_heard = "";
 				text_heard = std::regex_replace(text_heard, std::regex("\\s+$"), ""); // trailing whitespace
 
 				

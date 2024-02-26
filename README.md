@@ -31,13 +31,13 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 
 ## Installation
 ### For Windows 10/11 x64 with CUDA
-- Download anywhere all files from the latest release (Releases section is on the right)
-- install https://github.com/daswer123/xtts-api-server Use this manual: https://docs.sillytavern.app/extras/extensions/xtts/
+- Download anywhere all files from the latest release (Releases section is on the right). Chromium can block downloading of dlls, make sure all of them they are downloaded.
+- Install xtts-api-server, manual: https://github.com/daswer123/xtts-api-server?tab=readme-ov-file#installation Or another manual, if the first doesn't work: https://docs.sillytavern.app/extras/extensions/xtts/
 - Download /xtts directory from my repostory, keep the structure. Run xtts_streaming.bat to start xtts server.
 - Download whisper model to folder with talk-llama.exe: https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin (for English) or https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin (for Russian, or even ggml-large-v3-q5_0.bin it is larger but better). You can try small-q5 if you don't have much VRAM.
 - Download LLM to same folder https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q6_K.gguf , you can try q4_K_S if you don't have much VRAM.
 - Optional: edit talk-llama.bat or talk-llama_ru.bat, change params if needed (params description is below). Also check optional section below for speed-ups and google plugin.
-- Click talk-llama.bat or talk-llama_ru.bat, start speaking.  
+- Click talk-llama.bat or talk-llama_ru.bat, start speaking.
 
 ### Optional
 #### stop xtts when user is speaking

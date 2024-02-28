@@ -225,12 +225,12 @@ void whisper_print_usage(int /*argc*/, const char ** argv, const whisper_params 
     fprintf(stderr, "  --top_k N                  [%-7.2f] top_k \n",                                    params.top_k);
     fprintf(stderr, "  --top_p N                  [%-7.2f] top_p \n",                                    params.top_p);
     fprintf(stderr, "  --repeat_penalty N         [%-7.2f] repeat_penalty \n",                           params.repeat_penalty);
-	fprintf(stderr, "  --xtts-voice NAME          [%-7s] xtts voice without .wav\n",                     params.xtts_voice.c_str());
-	fprintf(stderr, "  --xtts-url TEXT            [%-7s] xtts/silero server URL, with trailing slash\n", params.xtts_url.c_str());
-	fprintf(stderr, "  --xtts-control-path FNAME  [%-7s] path to xtts_play_allowed.txt",                 params.xtts_control_path.c_str());
-	fprintf(stderr, "  --google-url TEXT          [%-7s] langchain google-serper server URL, with /\n",  params.google_url.c_str());
-	fprintf(stderr, "  --allow-newline            [%-7s] allow new line in llama output",                params.allow_newline ? "true" : "false");
-	fprintf(stderr, "  --multi-chars              [%-7s] xtts will use same wav name as in llama output",params.multi_chars ? "true" : "false");
+    fprintf(stderr, "  --xtts-voice NAME          [%-7s] xtts voice without .wav\n",                     params.xtts_voice.c_str());
+    fprintf(stderr, "  --xtts-url TEXT            [%-7s] xtts/silero server URL, with trailing slash\n", params.xtts_url.c_str());
+    fprintf(stderr, "  --xtts-control-path FNAME  [%-7s] path to xtts_play_allowed.txt",                 params.xtts_control_path.c_str());
+    fprintf(stderr, "  --google-url TEXT          [%-7s] langchain google-serper server URL, with /\n",  params.google_url.c_str());
+    fprintf(stderr, "  --allow-newline            [%-7s] allow new line in llama output",                params.allow_newline ? "true" : "false");
+    fprintf(stderr, "  --multi-chars              [%-7s] xtts will use same wav name as in llama output",params.multi_chars ? "true" : "false");
     fprintf(stderr, "\n");
 }
 

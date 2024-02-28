@@ -18,9 +18,9 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 - langchain google-serper
 
 ## News
-- 2024.02.28 - `--multi-chars` param for multiple character names, each one will be sent to xtts, so make sure if you have such wav file. Example, in Russian: https://t.me/tensorbanana/876
+- 2024.02.28 - `--multi-chars` param for multiple character names, each one will be sent to xtts, so make sure if you have such .wav files. Example, in Russian: https://t.me/tensorbanana/876
 - 2024.02.28 - `--translate` param for live en_ru translation. User speech is translated ru->en using whisper, llama output is translated en->ru using the same mistral model, inside the same context, without any speed dropouts, no extra vram is needed. This trick gives more intelligence to llama in Russian, but instead gives more grammar mistakes. And more text can fit in the context, because it is stored in English, while the translation is deleted right after generation of each sentence.
-- 2024.02.28 - `--allow-newline` param. By default, without it llama will stop generation if finds new line symbol.
+- 2024.02.28 - `--allow-newline` param. By default, without it llama will stop generation if it finds new a line symbol.
 - 2024.02.25 - I added `--vad-start-thold` param for tuning stop on speech detection (0.000270: default, 0 to turn off). VAD checks current noise level, if it is loud - xtts and llama stops. Turn it up if you are in a noisy room, also check `--print-energy`. Fixed a bug with stop_on_speech
 - 2024.02.22 - initial public release
 
@@ -127,6 +127,8 @@ del build\bin\Release\talk-llama.exe & cmake.exe --build build --config release
   --xtts-url TEXT            [http://localhost:8020/] xtts/silero server URL, with trailing slash
   --xtts-control-path FNAME  [c:\DATA\LLM\xtts\xtts_play_allowed.txt] path to xtts_play_allowed.txt  
   --google-url TEXT          [http://localhost:8003/] langchain google-serper server URL, with /
+  --allow-newline            [false  ] allow new line in llama output  
+  --multi-chars              [false  ] xtts will use same wav name as in llama output
 ```
 
 ## Voice commands:
@@ -137,6 +139,7 @@ Full list of commands and variations is in `talk-llama.cpp`, search `user_comman
 - Delete 3 messages (удали 3 сообщениия)
 - Reset (удали все) - will delete all context except for a initial prompt
 - Google something (погугли что-то)
+- Сall somebody (позови Алису)
 
 ## Bugs
 - `Reset` voice command won't work nice if  current context length is over --ctx_size

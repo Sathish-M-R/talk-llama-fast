@@ -24,6 +24,8 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 - 2024.02.25 - I added `--vad-start-thold` param for tuning stop on speech detection (0.000270: default, 0 to turn off). VAD checks current noise level, if it is loud - xtts and llama stops. Turn it up if you are in a noisy room, also check `--print-energy`. Fixed a bug with stop_on_speech
 - 2024.02.22 - initial public release
 
+## Notes
+- llama.cpp context shifting is working great by default. I used 2048 ctx and tested dialog up to 10000 tokens - the model is still sane, no severe loops or serious problems. Llama remembers everything from a start prompt and from the last 2048 of context, but eveyrything in the middle - is lost. No extra VRAM is used, you can have almost an endless talk without speed dropout.
 
 ## Requirements
 - Windows 10/11 x64
@@ -143,6 +145,7 @@ Full list of commands and variations is in `talk-llama.cpp`, search `user_comman
 
 ## Bugs
 - `Reset` voice command won't work nice if  current context length is over --ctx_size
-- Rope context scaling is not working nice
-- sometimes whisper is hallucinating, need to put hallucinations to stop-words. Check `misheard text` in `talk-llama.cpp`
-- don't put cyrillic (Russian) letters for characters or paths in .bat files, they may not work nice because of weird encoding. Use cmd instead if you need to use cyrillic letters.
+- GGML_ASSERT: n_tokens <= n_batch - start prompt in assistant.txt should be < 1024 tokens. 
+- Rope context - is not implemented. Use context shifting (enabled by default).
+- sometimes whisper is hallucinating, need to put hallucinations into stop-words. Check `misheard text` in `talk-llama.cpp`
+- don't put cyrillic (Russian) letters for characters or paths in .bat files, they may not work nice because of weird encoding. Use `cmd` instead if you need to use cyrillic letters.

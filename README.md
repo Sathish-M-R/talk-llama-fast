@@ -5,7 +5,7 @@ Early pre beta!
 based on talk-llama https://github.com/ggerganov/whisper.cpp
 
 ## I added:
-- xTTSv2 support
+- XTTSv2 support
 - UTF8 and Russian
 - Speed-ups: streaming for generation, streaming for xtts, aggresive VAD
 - voice commands: Google, stop, regenerate, delete, reset, call
@@ -14,7 +14,7 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 ## I used: 
 - whisper.cpp ggml-medium-q5_0.bin
 - mistral-7b-instruct-v0.2.Q6_K.gguf
-- xTTSv2 server in streaming-mode
+- XTTSv2 server in streaming-mode
 - langchain google-serper
 
 ## News

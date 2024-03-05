@@ -18,6 +18,7 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 - langchain google-serper
 
 ## News
+- 2024.03.05 - added a patcher to support xtts stop on speech feature https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server
 - 2024.02.28 - `--multi-chars` param to enable multiple character names, each one will be sent to xtts, so make sure that you have corresponding .wav files (e.g. alisa.wav). Use with voice command `Call NAME`. Video, in Russian: https://youtu.be/JOoVdHZNCcE or https://t.me/tensorbanana/876
 - 2024.02.28 - `--translate` param for live en_ru translation. Russian user voice is translated ru->en using whisper. Then Llama output is translated en->ru using the same mistral model, inside the same context, without any speed dropouts, no extra vram is needed. This trick gives more reasoning skills to llama in Russian, but instead gives more grammar mistakes. And more text can fit in the context, because it is stored in English, while the translation is deleted from context right after generation of each sentence.
 - 2024.02.28 - `--allow-newline` param. By default, without it llama will stop generation if it finds a new line symbol.
@@ -47,19 +48,18 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 ### Optional
 - For better Russian in XTTS check my finetune: https://huggingface.co/Ftfyhh/xttsv2_banana
 #### stop xtts when user is speaking
-- To stop playing XTTS: In talk-llama.bat change param --xtts-control-path to full path where you have xtts_play_allowed.txt
-- Then you need to modify c:\Users\[USERNAME]\miniconda3\Lib\site-packages\xtts_api_server\RealtimeTTS\text_to_stream.py
-- download /xtts/text_to_stream.py from my repo, compare its contents with original file (e.g. using notepad++ compare plugin), make changes. I will make automatic patcher later.
+- More details: https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server
+- In talk-llama.bat change param --xtts-control-path to full path where you have xtts_play_allowed.txt
+- Download 2 files from my /xtts/xtts_api_server/ to `c:\Users\[USERNAME]\miniconda3\Lib\site-packages\xtts_api_server\`
+- Run (double click or cmd python) 'patch_xtts_api_server.py' to patch 2 files in xtts_api_server
 
 #### Optional, better coma handling for xtts
-Better speech, but a little slower for first sentence:
+Better speech, but a little slower for first sentence. Xtts won't split sentences by coma ',':
 c:\Users\[USERNAME]\miniconda3\Lib\site-packages\stream2sentence\stream2sentence.py
 line 191, replace 
-```
-sentence_delimiters = '.?!;:,\n…)]}。'
+```sentence_delimiters = '.?!;:,\n…)]}。'```
 with
-sentence_delimiters = '.?!;:\n…)]}。'
-```
+```sentence_delimiters = '.?!;:\n…)]}。'```
 
 #### Optional, google search plugin
 - download search_server.py from my repo

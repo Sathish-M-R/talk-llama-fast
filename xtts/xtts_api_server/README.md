@@ -11,8 +11,8 @@ If you need to restore original files run:
 restore_xtts_api_server.py
 
 If you need to update xtts_api_server or need to re-patch it (patcher won't patch already patched files):
-- restore_xtts_api_server.py
-- update xtts_api_server
+- run restore_xtts_api_server.py
+- update xtts_api_server using pip or git
 - run patch_xtts_api_server.py
 
 

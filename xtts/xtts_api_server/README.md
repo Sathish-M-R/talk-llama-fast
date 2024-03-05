@@ -1,19 +1,21 @@
 # Patcher for xtts to support interruptions (stop on user speech)
 
+Tested with latest xtts_api_server 0.8.6 (released Jan 2 2024), if you have older version - it may not work.
+
 ## Patch
 - Stop xtts_api_server if running.
 - Copy 2 files (patch_xtts_api_server.py, restore_xtts_api_server.py) to /xtts_api_server directory. Usually it is somewhere here:
-c:\Users\[USER]\miniconda3\Lib\site-packages\xtts_api_server
-- Double click patch_xtts_api_server.py to patch files (or run in cmd: python patch_xtts_api_server.py). Check that there are no errors. It will create .bkp files, then will patch original .py files.
+`c:\Users\[USER]\miniconda3\Lib\site-packages\xtts_api_server`
+- Double click `patch_xtts_api_server.py` to patch files (or run in cmd: `python patch_xtts_api_server.py`). Check that there are no errors. It will create .bkp files, then will patch original .py files.
 
 ## Restore
 If you need to restore original files run:
-restore_xtts_api_server.py
+`restore_xtts_api_server.py`
 
 If you need to update xtts_api_server or need to re-patch it (patcher won't patch already patched files):
-- run restore_xtts_api_server.py
+- run `restore_xtts_api_server.py`
 - update xtts_api_server using pip or git
-- run patch_xtts_api_server.py
+- run `patch_xtts_api_server.py`
 
 
 ## Modified files:

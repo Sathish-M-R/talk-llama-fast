@@ -4,7 +4,7 @@ based on talk-llama https://github.com/ggerganov/whisper.cpp
 
 English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 
-Видео на русском, v0.0.3: https://www.youtube.com/watch?v=N3Eoc6M3Erg
+Видео на русском, v0.0.3: https://www.youtube.com/watch?v=JOoVdHZNCcE
 
 ## I added:
 - XTTSv2 support

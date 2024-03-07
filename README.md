@@ -156,4 +156,5 @@ Full list of commands and variations is in `talk-llama.cpp`, search `user_comman
 
 ## Contacts
 Reddit: https://www.reddit.com/user/tensorbanana
+
 ТГ: https://t.me/tensorbanana

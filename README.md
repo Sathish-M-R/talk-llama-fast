@@ -1,8 +1,10 @@
 # talk-llama-fast
 
-Early pre beta!
-
 based on talk-llama https://github.com/ggerganov/whisper.cpp
+
+English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
+
+Видео на русском, v0.0.3: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 
 ## I added:
 - XTTSv2 support
@@ -150,3 +152,8 @@ Full list of commands and variations is in `talk-llama.cpp`, search `user_comman
 - Rope context - is not implemented. Use context shifting (enabled by default).
 - sometimes whisper is hallucinating, need to put hallucinations into stop-words. Check `misheard text` in `talk-llama.cpp`
 - don't put cyrillic (Russian) letters for characters or paths in .bat files, they may not work nice because of weird encoding. Use `cmd` instead if you need to use cyrillic letters.
+
+
+## Contacts
+Reddit: https://www.reddit.com/user/tensorbanana
+ТГ: https://t.me/tensorbanana

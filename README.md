@@ -20,7 +20,7 @@ English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 - langchain google-serper
 
 ## News
-- 2024.03.09 - v0.0.4. New params: `--stop-words` ("", list for llama separeted by ;), `--min-tokens` (0, min tokens to output), `--split-after` (0, split first sentence after N tokens for xtts), `--seqrep` (false, detect loops: 20 symbols in last 300 symbols), `--xtts-intro` (echo random Umm/Well/...  right after user input)
+- 2024.03.09 - v0.0.4. New params: `--stop-words` ("", list for llama separated by ;), `--min-tokens` (0, min tokens to output), `--split-after` (0, split first sentence after N tokens for xtts), `--seqrep` (false, detect loops: 20 symbols in 300 last symbols), `--xtts-intro` (echo random Umm/Well/...  right after user input)
 - 2024.03.05 - I added a patcher to support xtts `stop on speech` feature https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server
 - 2024.02.28 - v0.0.3 `--multi-chars` param to enable different voice for each character, each one will be sent to xtts, so make sure that you have corresponding .wav files (e.g. alisa.wav). Use with voice command `Call NAME`. Video, in Russian: https://youtu.be/JOoVdHZNCcE or https://t.me/tensorbanana/876
 - `--translate` param for live en_ru translation. Russian user voice is translated ru->en using whisper. Then Llama output is translated en->ru using the same mistral model, inside the same context, without any speed dropouts, no extra vram is needed. This trick gives more reasoning skills to llama in Russian, but instead gives more grammar mistakes. And more text can fit in the context, because it is stored in English, while the translation is deleted from context right after generation of each sentence. `--allow-newline` param. By default, without it llama will stop generation if it finds a new line symbol.
@@ -124,7 +124,7 @@ del build\bin\Release\talk-llama.exe & cmake.exe --build build --config release
   -f FNAME, --file FNAME     [       ] text output file name
    --ctx_size N              [2500   ] Size of the prompt context
   -n N, --n_predict N        [120    ] Number of tokens to predict
-  --temp N                   [0.10   ] Temperature
+  --temp N                   [0.90   ] Temperature
   --top_k N                  [40.00  ] top_k
   --top_p N                  [1.00   ] top_p
   --repeat_penalty N         [1.10   ] repeat_penalty
@@ -138,7 +138,7 @@ del build\bin\Release\talk-llama.exe & cmake.exe --build build --config release
   --xtts-intro               [false  ] xtts instant short random intro like Hmmm.
   --seqrep                   [true   ] sequence repetition penalty, search 20 in 300
   --split-after N            [0      ] split after first n tokens for tts
-  --min-tokens N             [30     ] min new tokens to output
+  --min-tokens N             [0      ] min new tokens to output
   --stop-words TEXT          [Aleks:;alex:;Алекс:;---] llama stop w: separated by ;
 ```
 

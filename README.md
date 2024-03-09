@@ -20,9 +20,10 @@ English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 - langchain google-serper
 
 ## News
+- 2024.03.09 - v0.0.4. New params: --stop-words ('', list for llama separeted by ;), --min-tokens (0, min tokens to output), --split-after (0, split first sentence after N tokens for xtts), --seqrep (false, detect loops: 20 symbols in last 300 symbols), --xtts-intro (echo random Umm/Well/...  right after user input)
 - 2024.03.05 - I added a patcher to support xtts `stop on speech` feature https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server
-- 2024.02.28 - `--multi-chars` param to enable multiple character names, each one will be sent to xtts, so make sure that you have corresponding .wav files (e.g. alisa.wav). Use with voice command `Call NAME`. Video, in Russian: https://youtu.be/JOoVdHZNCcE or https://t.me/tensorbanana/876
-- 2024.02.28 - `--translate` param for live en_ru translation. Russian user voice is translated ru->en using whisper. Then Llama output is translated en->ru using the same mistral model, inside the same context, without any speed dropouts, no extra vram is needed. This trick gives more reasoning skills to llama in Russian, but instead gives more grammar mistakes. And more text can fit in the context, because it is stored in English, while the translation is deleted from context right after generation of each sentence.
+- 2024.02.28 - v0.0.3 `--multi-chars` param to enable different voice for each character, each one will be sent to xtts, so make sure that you have corresponding .wav files (e.g. alisa.wav). Use with voice command `Call NAME`. Video, in Russian: https://youtu.be/JOoVdHZNCcE or https://t.me/tensorbanana/876
+- `--translate` param for live en_ru translation. Russian user voice is translated ru->en using whisper. Then Llama output is translated en->ru using the same mistral model, inside the same context, without any speed dropouts, no extra vram is needed. This trick gives more reasoning skills to llama in Russian, but instead gives more grammar mistakes. And more text can fit in the context, because it is stored in English, while the translation is deleted from context right after generation of each sentence.
 - 2024.02.28 - `--allow-newline` param. By default, without it llama will stop generation if it finds a new line symbol.
 - 2024.02.25 - I added `--vad-start-thold` param for tuning stop on speech detection (0.000270: default, 0 to turn off). VAD checks current noise level, if it is loud - xtts and llama stops. Turn it up if you are in a noisy room, also check `--print-energy`. Fixed a bug with stop_on_speech
 - 2024.02.22 - initial public release
@@ -100,8 +101,8 @@ del build\bin\Release\talk-llama.exe & cmake.exe --build build --config release
   -c ID,    --capture ID     [-1     ] capture device ID
   -mt N,    --max-tokens N   [32     ] maximum number of tokens per audio chunk
   -ac N,    --audio-ctx N    [0      ] audio context size (0 - all)
-  -ngl N,   --n-gpu-layers N [999    ] number of layers to store in VRAM
-  -vth N,   --vad-thold N    [0.60   ] voice avg activity detection threshold
+  -ngl N,   --n-gpu-layers N [23     ] number of layers to store in VRAM
+  -vth N,   --vad-thold N    [0.50   ] voice avg activity detection threshold
   -vths N,  --vad-start-thold N [0.000270] vad min level to stop tts, 0: off, 0.000270: default
   -vlm N,   --vad-last-ms N  [0      ] vad min silence after speech, ms
   -fth N,   --freq-thold N   [100.00 ] high-pass frequency cutoff
@@ -111,29 +112,35 @@ del build\bin\Release\talk-llama.exe & cmake.exe --build build --config release
   -pe,      --print-energy   [false  ] print sound energy (for debugging)
   -vp,      --verbose-prompt [false  ] print prompt at start
   -ng,      --no-gpu         [false  ] disable GPU
-  -p NAME,  --person NAME    [Georgi ] person name (for prompt selection)
-  -bn NAME, --bot-name NAME  [LLaMA  ] bot name (to display)
+  -p NAME,  --person NAME    [Alex   ] person name (for prompt selection)
+  -bn NAME, --bot-name NAME  [Anna   ] bot name (to display)
   -w TEXT,  --wake-command T [       ] wake-up command to listen for
   -ho TEXT, --heard-ok TEXT  [       ] said by TTS before generating reply
-  -l LANG,  --language LANG  [en     ] spoken language
-  -mw FILE, --model-whisper  [models/ggml-base.en.bin] whisper model file
-  -ml FILE, --model-llama    [models/ggml-llama-7B.bin] llama model file
-  -s FILE,  --speak TEXT     [./examples/talk-llama/speak] command for TTS
+  -l LANG,  --language LANG  [ru     ] spoken language
+  -mw FILE, --model-whisper  [ggml-large-v3-q5_0.bin] whisper model file
+  -ml FILE, --model-llama    [mistral-7b-instruct-v0.2.Q8_0.gguf] llama model file
+  -s FILE,  --speak TEXT     [speak  ] command for TTS
   --prompt-file FNAME        [       ] file with custom prompt to start dialog
   --session FNAME                   file to cache model state in (may be large!) (default: none)
   -f FNAME, --file FNAME     [       ] text output file name
-   --ctx_size N              [2048   ] Size of the prompt context
-  -n N, --n_predict N        [64     ] Number of tokens to predict
-  --temp N                   [0.90   ] Temperature
+   --ctx_size N              [2500   ] Size of the prompt context
+  -n N, --n_predict N        [120    ] Number of tokens to predict
+  --temp N                   [0.10   ] Temperature
   --top_k N                  [40.00  ] top_k
   --top_p N                  [1.00   ] top_p
   --repeat_penalty N         [1.10   ] repeat_penalty
-  --xtts-voice NAME          [emma_1 ] xtts voice without .wav
+  --repeat_last_n N          [256    ] repeat_last_n
+  --xtts-voice NAME          [Emma   ] xtts voice without .wav
   --xtts-url TEXT            [http://localhost:8020/] xtts/silero server URL, with trailing slash
-  --xtts-control-path FNAME  [c:\DATA\LLM\xtts\xtts_play_allowed.txt] path to xtts_play_allowed.txt  
+  --xtts-control-path FNAME  [c:\\DATA\\LLM\\xtts\\xtts_play_allowed.txt] path to xtts_play_allowed.txt  
   --google-url TEXT          [http://localhost:8003/] langchain google-serper server URL, with /
-  --allow-newline            [false  ] allow new line in llama output  
-  --multi-chars              [false  ] xtts will use same wav name as in llama output
+  --allow-newline            [true   ] allow new line in llama output
+  --multi-chars              [true   ] xtts will use same wav name as in llama output
+  --xtts-intro               [false  ] xtts instant short random intro like Hmmm.
+  --seqrep                   [true   ] sequence repetition penalty, search 20 in 300
+  --split-after N            [0      ] split after first n tokens for tts
+  --min-tokens N             [30     ] min new tokens to output
+  --stop-words TEXT          [Aleks:;alex:;Алекс:;---] llama stop w: separated by ;
 ```
 
 ## Voice commands:

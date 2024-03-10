@@ -20,12 +20,12 @@ English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 - langchain google-serper
 
 ## News
-- 2024.03.10 - Updated [xtts patcher](https://github.com/Mozer/talk-llama-fast/blob/master/xtts/patch_xtts_api_server.py). Now if requested voice doesn't exist, xtts will play first found voice, instead of an error.
-- 2024.03.09 - v0.0.4. New params: `--stop-words` (list for llama separated by semicolon: `;`), `--min-tokens` (min tokens to output), `--split-after` (split first sentence after N tokens for xtts), `--seqrep` (detect loops: 20 symbols in 300 last symbols), `--xtts-intro` (echo random Umm/Well/...  to xtts right after user input). See 0.0.4 release for details.
-- 2024.03.05 - I added a patcher to support xtts `stop on speech` feature https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server
+- 2024.03.10 - Updated [xtts patcher](https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server). Now if requested voice doesn't exist, xtts will play first found voice, instead of an error.
+- 2024.03.09 - v0.0.4. New params: `--stop-words` (list for llama separated by semicolon: `;`), `--min-tokens` (min tokens to output), `--split-after` (split first sentence after N tokens for xtts), `--seqrep` (detect loops: 20 symbols in 300 last symbols), `--xtts-intro` (echo random Umm/Well/...  to xtts right after user input). See [0.0.4](https://github.com/Mozer/talk-llama-fast/releases/tag/0.0.4) release for details.
+- 2024.03.05 - I added a patcher to support xtts `stop on speech` feature [xtts patcher](https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server)
 - 2024.02.28 - v0.0.3 `--multi-chars` param to enable different voice for each character, each one will be sent to xtts, so make sure that you have corresponding .wav files (e.g. alisa.wav). Use with voice command `Call NAME`. Video, in Russian: https://youtu.be/JOoVdHZNCcE or https://t.me/tensorbanana/876
 - `--translate` param for live en_ru translation. Russian user voice is translated ru->en using whisper. Then Llama output is translated en->ru using the same mistral model, inside the same context, without any speed dropouts, no extra vram is needed. This trick gives more reasoning skills to llama in Russian, but instead gives more grammar mistakes. And more text can fit in the context, because it is stored in English, while the translation is deleted from context right after generation of each sentence. `--allow-newline` param. By default, without it llama will stop generation if it finds a new line symbol.
-- 2024.02.25 - I added `--vad-start-thold` param for tuning stop on speech detection (0.000270: default, 0 to turn off). VAD checks current noise level, if it is loud - xtts and llama stops. Turn it up if you are in a noisy room, also check `--print-energy`. Fixed a bug with stop_on_speech
+- 2024.02.25 - I added `--vad-start-thold` param for tuning stop on speech detection (default: 0.000270; 0 to turn off). VAD checks current noise level, if it is loud - xtts and llama stops. Turn it up if you are in a noisy room, also check `--print-energy`.
 - 2024.02.22 - initial public release
 
 ## Notes
@@ -34,7 +34,7 @@ English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 ## Requirements
 - Windows 10/11 x64
 - python, cuda
-- nvidia GPU with 12 GB vram, but i guess you can try with 8 GB. Also you can try to use CPU instead of GPU, but it will be slow (you need to build cpu version yourself).
+- nvidia GPU with 12 GB vram, but you can try with 8 GB. Also you can try to use CPU instead of GPU, but it will be slower (you need to build cpu version yourself).
 - For AMD, macos, linux, android - first you need to compile everything. I don't know if it works. 
 - Android version is TODO.
 

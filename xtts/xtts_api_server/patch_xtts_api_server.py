@@ -4,7 +4,18 @@ import os, time, shutil, codecs
 def return_patch_files():
     file_paths_with_replacements = [
         ['server.py', 
-            {'language = request.language[0:2]': """language = request.language[0:2]
+            {'speaker_wav = XTTS.get_speaker_wav(request.speaker_wav)': """# if voice not found -> use first found
+            folder_path = "speakers/"
+            if not os.path.isfile(folder_path+request.speaker_wav+".wav"):               
+                files = [ f for f in os.listdir(folder_path) if os.path.isfile(os.path.join(folder_path,f)) and f.endswith(".wav") ]
+                if len(files) < 1:
+                    print("Error: no files in /speakers. Put some wavs there.")
+                else:
+                    filename = files[0].replace(".wav", "")                    
+                    print(" ["+request.speaker_wav+" not found, using "+filename+"]")
+                    request.speaker_wav = filename
+            print('\033[1m' + request.speaker_wav+'\033[0m: ' + request.text)
+            speaker_wav = XTTS.get_speaker_wav(request.speaker_wav)
             
             # CHECK: dont play if user is talking
             if STREAM_PLAY_SYNC:

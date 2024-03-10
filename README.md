@@ -20,7 +20,7 @@ English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 - langchain google-serper
 
 ## News
-- 2024.03.10 - Updated [xtts patcher](https://github.com/Mozer/talk-llama-fast/blob/master/xtts/patch_xtts_api_server.py). Now if requested voice doesn't exist xtts will play first found voice, instead of an error.
+- 2024.03.10 - Updated [xtts patcher](https://github.com/Mozer/talk-llama-fast/blob/master/xtts/patch_xtts_api_server.py). Now if requested voice doesn't exist, xtts will play first found voice, instead of an error.
 - 2024.03.09 - v0.0.4. New params: `--stop-words` (list for llama separated by semicolon: `;`), `--min-tokens` (min tokens to output), `--split-after` (split first sentence after N tokens for xtts), `--seqrep` (detect loops: 20 symbols in 300 last symbols), `--xtts-intro` (echo random Umm/Well/...  to xtts right after user input). See 0.0.4 release for details.
 - 2024.03.05 - I added a patcher to support xtts `stop on speech` feature https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server
 - 2024.02.28 - v0.0.3 `--multi-chars` param to enable different voice for each character, each one will be sent to xtts, so make sure that you have corresponding .wav files (e.g. alisa.wav). Use with voice command `Call NAME`. Video, in Russian: https://youtu.be/JOoVdHZNCcE or https://t.me/tensorbanana/876

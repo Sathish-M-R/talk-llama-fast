@@ -51,9 +51,9 @@ English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 
 ## Installation
 ### For Windows 10/11 x64 with CUDA.
-- Download latest release in zip from [release](https://github.com/Mozer/talk-llama-fast/releases). Extract it's contents.
-- Download whisper model to folder with talk-llama.exe: https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin (for English) or https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin (for Russian, or even ggml-large-v3-q5_0.bin it is larger but better). You can try small-q5 if you don't have much VRAM.
-- Download LLM to same folder https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q5_0.gguf , you can try q4_K_S or q3 if you don't have much VRAM.
+- Download latest [release](https://github.com/Mozer/talk-llama-fast/releases) in zip. Extract it's contents.
+- Download whisper model to folder with talk-llama.exe: [for English](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin) or [for Russian](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin) (or even ggml-large-v3-q5_0.bin it is larger but better). You can try small-q5 if you don't have much VRAM.
+- Download LLM to same folder [mistral-7b-instruct-v0.2.Q5_0](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q5_0.gguf), you can try q4_K_S or q3 if you don't have much VRAM.
 - Now let's install my modified sillyTavern-extras, wav2lip, xtts-api-server, tts (all from my github). Note: if you have original versions of those packages and want them to stay then you have to activate conda, miniconda or venv, it is safe. xtts-api-server uses some specific version of torch==2.1.1 and transformers==4.36.2, it might brake something else. I don't use conda, so we will rewrite everything, and wish us luck. Inside the directory where you extracted talk-llama-fast-v0.1.0.zip run a cmd:
 ```
 git clone https://github.com/Mozer/SillyTavern-Extras

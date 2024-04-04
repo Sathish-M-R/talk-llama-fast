@@ -15,21 +15,25 @@ English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 
 ## I used: 
 - whisper.cpp ggml-medium-q5_0.bin
-- mistral-7b-instruct-v0.2.Q6_K.gguf
+- mistral-7b-instruct-v0.2.Q5_0.gguf
 - XTTSv2 server in streaming-mode
 - langchain google-serper
 
 ## News
-- 2024.03.10 - Updated [xtts patcher](https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server). Now if requested voice doesn't exist, xtts will play first found voice, instead of an error.
-- 2024.03.09 - v0.0.4. New params: `--stop-words` (list for llama separated by semicolon: `;`), `--min-tokens` (min tokens to output), `--split-after` (split first sentence after N tokens for xtts), `--seqrep` (detect loops: 20 symbols in 300 last symbols), `--xtts-intro` (echo random Umm/Well/...  to xtts right after user input). See [0.0.4](https://github.com/Mozer/talk-llama-fast/releases/tag/0.0.4) release for details.
-- 2024.03.05 - I added a patcher to support xtts `stop on speech` feature [xtts patcher](https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server)
-- 2024.02.28 - v0.0.3 `--multi-chars` param to enable different voice for each character, each one will be sent to xtts, so make sure that you have corresponding .wav files (e.g. alisa.wav). Use with voice command `Call NAME`. Video, in Russian: https://youtu.be/JOoVdHZNCcE or https://t.me/tensorbanana/876
+- [2024.04.04] v0.1.0. Added streaming wav2lip. With super low latency: from user speech to video it's just 1.5 seconds! Had to rewrite silly-tavern-extras, wav2lip, xtts-api-server, tts (all forked to my github). Streaming wav2lip can be used in SillyTavern. Setup guide and video are comming in next few days. 
+- [2024.03.10] Updated [xtts patcher](https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server). Now if requested voice doesn't exist, xtts will play first found voice, instead of an error.
+- [2024.03.09] v0.0.4. New params: `--stop-words` (list for llama separated by semicolon: `;`), `--min-tokens` (min tokens to output), `--split-after` (split first sentence after N tokens for xtts), `--seqrep` (detect loops: 20 symbols in 300 last symbols), `--xtts-intro` (echo random Umm/Well/...  to xtts right after user input). See [0.0.4](https://github.com/Mozer/talk-llama-fast/releases/tag/0.0.4) release for details.
+- [2024.03.05] I added a patcher to support xtts `stop on speech` feature [xtts patcher](https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server)
+- [2024.02.28] v0.0.3 `--multi-chars` param to enable different voice for each character, each one will be sent to xtts, so make sure that you have corresponding .wav files (e.g. alisa.wav). Use with voice command `Call NAME`. Video, in Russian: https://youtu.be/JOoVdHZNCcE or https://t.me/tensorbanana/876
 - `--translate` param for live en_ru translation. Russian user voice is translated ru->en using whisper. Then Llama output is translated en->ru using the same mistral model, inside the same context, without any speed dropouts, no extra vram is needed. This trick gives more reasoning skills to llama in Russian, but instead gives more grammar mistakes. And more text can fit in the context, because it is stored in English, while the translation is deleted from context right after generation of each sentence. `--allow-newline` param. By default, without it llama will stop generation if it finds a new line symbol.
-- 2024.02.25 - I added `--vad-start-thold` param for tuning stop on speech detection (default: 0.000270; 0 to turn off). VAD checks current noise level, if it is loud - xtts and llama stops. Turn it up if you are in a noisy room, also check `--print-energy`.
-- 2024.02.22 - initial public release
+- [2024.02.25] I added `--vad-start-thold` param for tuning stop on speech detection (default: 0.000270; 0 to turn off). VAD checks current noise level, if it is loud - xtts and llama stops. Turn it up if you are in a noisy room, also check `--print-energy`.
+- [2024.02.22] initial public release
 
 ## Notes
 - llama.cpp context shifting is working great by default. I used 2048 ctx and tested dialog up to 10000 tokens - the model is still sane, no severe loops or serious problems. Llama remembers everything from a start prompt and from the last 2048 of context, but eveyrything in the middle - is lost. No extra VRAM is used, you can have almost an endless talk without speed dropout.
+- in xtts.bat don't set `--extras-set` as localhost, put it as `http://127.0.0.1:5100/`. localhost option was slower by 2 seconds in my case, not sure why.
+- if you are using bluetooth headphones and audio is lagging after video you can tune this lag: in `SillyTavern-extras\modules\wav2lip\server_wav2lip.py` in play_video_with_audio at line 367 set `sync_audio_delta_bytes = 5000`.  
+
 
 ## Requirements
 - Windows 10/11 x64
@@ -39,14 +43,16 @@ English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 - Android version is TODO.
 
 ## Installation
-### For Windows 10/11 x64 with CUDA
+### For Windows 10/11 x64 with CUDA. No guide for wav2lip is here yet (TODO)
 - Download anywhere all files from the latest release (Releases section is on the right). Chromium can block downloading of dlls, make sure all of them they are downloaded.
 - Install xtts-api-server, manual: https://github.com/daswer123/xtts-api-server?tab=readme-ov-file#installation Or another manual, if the first doesn't work: https://docs.sillytavern.app/extras/extensions/xtts/
 - Download /xtts directory from my repostory, keep the structure. Run xtts_streaming.bat to start xtts server.
 - Download whisper model to folder with talk-llama.exe: https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin (for English) or https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin (for Russian, or even ggml-large-v3-q5_0.bin it is larger but better). You can try small-q5 if you don't have much VRAM.
-- Download LLM to same folder https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q6_K.gguf , you can try q4_K_S if you don't have much VRAM.
+- Download LLM to same folder https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q5_0.gguf , you can try q4_K_S if you don't have much VRAM.
 - Optional: edit talk-llama.bat or talk-llama_ru.bat, change params if needed (params description is below). Also check optional section below for speed-ups and google plugin.
 - Click talk-llama.bat or talk-llama_ru.bat, start speaking.
+
+- Install ffmpeg, put into your PATH environment (info: https://phoenixnap.com/kb/ffmpeg-windows). Then download h264 codec .dll of required version from https://github.com/cisco/openh264/releases and put to /system32 or /ffmpeg/bin dir. In my case it for Windows 11 it was openh264-1.8.0-win64.dll. Wav2lip will work without this dll but will print an error.
 
 ### Optional
 - For better Russian in XTTS check my finetune: https://huggingface.co/Ftfyhh/xttsv2_banana
@@ -159,7 +165,7 @@ Full list of commands and variations is in `talk-llama.cpp`, search `user_comman
 - Rope context - is not implemented. Use context shifting (enabled by default).
 - sometimes whisper is hallucinating, need to put hallucinations into stop-words. Check `misheard text` in `talk-llama.cpp`
 - don't put cyrillic (Russian) letters for characters or paths in .bat files, they may not work nice because of weird encoding. Use `cmd` instead if you need to use cyrillic letters.
-
+- if after some time wav2lip video window is disappeared but audio is still playing fine - restart Silly Tavern Extras.
 
 ## Contacts
 Reddit: https://www.reddit.com/user/tensorbanana

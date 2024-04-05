@@ -171,7 +171,7 @@ del build\bin\Release\talk-llama.exe & cmake.exe --build build --config release
   --google-url TEXT          [http://localhost:8003/] langchain google-serper server URL, with /
   --allow-newline            [false  ] allow new line in llama output
   --multi-chars              [false  ] xtts will use same wav name as in llama output
-  --seqrep                   [false  ] sequence repetition penalty, search 20 in 300
+  --seqrep                   [false  ] sequence repetition penalty, search last 20 in 300
   --split-after N            [0      ] split after first n tokens for tts
   --min-tokens N             [0      ] min new tokens to output
   --stop-words TEXT          [       ] llama stop w: separated by ;
@@ -192,7 +192,7 @@ Full list of commands and variations is in `talk-llama.cpp`, search `user_comman
 - GGML_ASSERT: n_tokens <= n_batch - start prompt in assistant.txt should be < 1024 tokens. (lcparams.n_batch  = 1024; in cpp code, default was 512)
 - Rope context - is not implemented. Use context shifting (enabled by default).
 - sometimes whisper is hallucinating, need to put hallucinations into stop-words. Check `misheard text` in `talk-llama.cpp`
-- don't put cyrillic (Russian) letters for characters or paths in .bat files, they may not work nice because of weird encoding. Use `cmd` instead if you need to use cyrillic letters.
+- don't put cyrillic (русские) letters for characters or paths in .bat files, they may not work nice because of weird encoding. Copy text from .bat, paste into `cmd` if you need to use cyrillic letters with talk-llama-fast.exe.
 - During first run wav2lip will run face detection with a newly added video. It will take about 30-60 s, but it happens just once and then it is saved to cache. And there is a bug with face detection wich slows down everything (memory leak). You need to restart Silly Tavern Extras after face detection is finished.
 - Sometimes wav2lip video window disappears but audio is still playing fine. If the video window doesn't come back automatically - restart Silly Tavern Extras.
 - if you restart xtts you need to restart silly-tavern-extras. Otherwise wav2lip will start playing wrong segments of already created videos.

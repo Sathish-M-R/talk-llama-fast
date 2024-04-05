@@ -38,7 +38,7 @@ English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 - in xtts_wav2lip.bat don't set `--extras-url` as http://localhost:5100/, put it as `http://127.0.0.1:5100/`. localhost option was slower by 2 seconds in my case, not sure why.
 - if you are using bluetooth headphones and audio is lagging after video you can tune this lag: in `SillyTavern-extras\modules\wav2lip\server_wav2lip.py` in play_video_with_audio at line 367 set `sync_audio_delta_bytes = 5000`.
 - wav2lip video is played on the same device as the host. Currently it can't be run on a remote server like google colab. Mobile phones are also not supported ATM.
-- wav2lip can be used with original SillyTavern. No extra extensions required, just my modified xtts-api-server.
+- wav2lip can be used with original SillyTavern (just xtts+wav2lip, no speech-to-text, no voice interruption). No extra extensions required, just follow installation process.
 - VRAM usage: mistral-7B-q5_0 + whisper-medium-q5_0.bin: 7.5 GB, xtts: 2.7 GB, wav2lip: 0.8 GB = Total of 11.0 GB. If you have just 8 GB: use smaller quant of llama!; try using --lowvram with xtts or even start xtts on cpu instead of gpu (`-d=cpu` but it is slow). Try to turn off streaming in xtts: set streaming chunk size as a single number in xtts_wav2lip.bat (--wav-chunk-sizes 9999). It will be slower, but less overhead for multiple small requests.
 
 
@@ -54,7 +54,7 @@ English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 - Download latest [release](https://github.com/Mozer/talk-llama-fast/releases) in zip. Extract it's contents.
 - Download whisper model to folder with talk-llama.exe: [for English](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin) or [for Russian](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin) (or even ggml-large-v3-q5_0.bin it is larger but better). You can try small-q5 if you don't have much VRAM.
 - Download LLM to same folder [mistral-7b-instruct-v0.2.Q5_0](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q5_0.gguf), you can try q4_K_S or q3 if you don't have much VRAM.
-- Now let's install my modified sillyTavern-extras, wav2lip, xtts-api-server, tts (all from my github). Note: if you have original versions of those packages and want them to stay then you have to activate conda, miniconda or venv, it is safe. xtts-api-server uses some specific version of torch==2.1.1 and transformers==4.36.2, it might brake something else. I don't use conda, so we will rewrite everything, and wish us luck. Inside the directory where you extracted talk-llama-fast-v0.1.0.zip run a cmd:
+- Now let's install my modified sillyTavern-extras, wav2lip, xtts-api-server, tts (all from my github). Note: if you have original version of TTS package and want it to stay, then you have to activate conda, miniconda or venv, it is safe. xtts-api-server uses some specific version of torch==2.1.1 and transformers==4.36.2, it might brake something else. I don't use conda, so we will rewrite everything, and wish us luck. Inside the directory where you extracted talk-llama-fast-v0.1.0.zip and where talk-llama.exe is located run a cmd:
 ```
 git clone https://github.com/Mozer/SillyTavern-Extras
 cd SillyTavern-extras
@@ -66,23 +66,27 @@ pip install -r requirements.txt
 cd ..
 cd ..
 cd ..
+cd xtts
 git clone https://github.com/Mozer/xtts-api-server
 cd xtts-api-server 
 pip install -r requirements.txt
 ```
-- if there are some errors with xtts-api-server installation, check manual (not mine): https://github.com/daswer123/xtts-api-server?tab=readme-ov-file#installation Or another manual, if the first doesn't work: https://docs.sillytavern.app/extras/extensions/xtts/
+- if there are some errors with xtts-api-server installation, check manual (not mine): https://github.com/daswer123/xtts-api-server?tab=readme-ov-file#installation Or another manual, if the first doesn't work: https://docs.sillytavern.app/extras/extensions/xtts/ I remember that when I first installed xtts-api-server it asked to install some full version of visual-cpp-build-tools. The default download page from MS wasn't working for me, so i had to google and found it elsewhere (maybe it was VC_redist.x86.exe). Open a PR if you know which version of visual-cpp-build-tools is working for you.
 - Notice: that \wav2lip\ was installed inside \SillyTavern-extras\modules\ folder. That's important. My tts is installed automatically (i hope so) from xtts-api-server requirements.txt
+- Edit xtts_wav2lip.bat, change `--output` from c:\\DATA\\LLM\\SillyTavern-Extras\\tts_out\\ to actual path where your \SillyTavern-Extras\tts_out\ dir is located.
 - Optional: edit talk-llama-wav2lip.bat, change params if needed (params description is below).
-- Run /SillyTavern-extras/silly_extras.bat
-- In /xtts/ dir run xtts_wav2lip.bat to start xtts server with wav2lip video. OR run xtts_streaming_audio.bat to start xtts server with audio without video.
-- Run talk-llama-wav2lip.bat or talk-llama-wav2lip-ru.bat or talk-llama-just-audio.bat. You can make desktop shortcuts to all those .bats for fast access. Start speaking. 
 
-- Install ffmpeg, put into your PATH environment (info: https://phoenixnap.com/kb/ffmpeg-windows). Then download h264 codec .dll of required version from https://github.com/cisco/openh264/releases and put to /system32 or /ffmpeg/bin dir. In my case it for Windows 11 it was openh264-1.8.0-win64.dll. Wav2lip will work without this dll but will print an error.
+## Running
+- In /SillyTavern-extras/ run `silly_extras.bat`. Wait until it downloads wav2lip checkpoint and makes face detection for new video if needed.
+- In /xtts/ dir run `xtts_wav2lip.bat` to start xtts server with wav2lip video. OR run xtts_streaming_audio.bat to start xtts server with audio without video.
+- Run `talk-llama-wav2lip.bat` or talk-llama-wav2lip-ru.bat or talk-llama-just-audio.bat. You can make desktop shortcuts to all those .bats for fast access. Start speaking. 
+
+- Install ffmpeg, put into your PATH environment (info: https://phoenixnap.com/kb/ffmpeg-windows). Then download h264 codec .dll of required version from https://github.com/cisco/openh264/releases and put to /system32 or /ffmpeg/bin dir. In my case for Windows 11 it was openh264-1.8.0-win64.dll. Wav2lip will work without this dll but will print an error.
 
 ### Optional
 - For better Russian in XTTS check my finetune: https://huggingface.co/Ftfyhh/xttsv2_banana But it is not for streaming (hallucinates at short replies). Use with default xtts in silly tavern.
 
-#### Optional, better coma handling for xtts - only for xtts audio without wav2lip
+#### Optional, better coma handling for xtts - only for xtts audio without wav2lip video
 Better speech, but a little slower for first sentence. Xtts won't split sentences by coma ',':
 c:\Users\[USERNAME]\miniconda3\Lib\site-packages\stream2sentence\stream2sentence.py
 line 191, replace 

@@ -75,15 +75,18 @@ pip install -r requirements.txt
 - Notice: that \wav2lip\ was installed inside \SillyTavern-extras\modules\ folder. That's important. My tts is installed automatically (i hope so) from xtts-api-server requirements.txt
 - Edit xtts_wav2lip.bat, change `--output` from c:\\DATA\\LLM\\SillyTavern-Extras\\tts_out\\ to actual path where your \SillyTavern-Extras\tts_out\ dir is located.
 - Optional: edit talk-llama-wav2lip.bat, change params if needed (params description is below).
+- Install ffmpeg, put into your PATH environment (info: https://phoenixnap.com/kb/ffmpeg-windows). Then download h264 codec .dll of required version from https://github.com/cisco/openh264/releases and put to /system32 or /ffmpeg/bin dir. In my case for Windows 11 it was openh264-1.8.0-win64.dll. Wav2lip will work without this dll but will print an error.
 
 ## Running
 - In /SillyTavern-extras/ run `silly_extras.bat`. Wait until it downloads wav2lip checkpoint and makes face detection for new video if needed.
 - In /xtts/ dir run `xtts_wav2lip.bat` to start xtts server with wav2lip video. OR run xtts_streaming_audio.bat to start xtts server with audio without video.
 - Run `talk-llama-wav2lip.bat` or talk-llama-wav2lip-ru.bat or talk-llama-just-audio.bat. You can make desktop shortcuts to all those .bats for fast access. Start speaking. 
 
-- Install ffmpeg, put into your PATH environment (info: https://phoenixnap.com/kb/ffmpeg-windows). Then download h264 codec .dll of required version from https://github.com/cisco/openh264/releases and put to /system32 or /ffmpeg/bin dir. In my case for Windows 11 it was openh264-1.8.0-win64.dll. Wav2lip will work without this dll but will print an error.
+
 
 ### Optional
+- Put new xtts voices into `\xtts\speakers\`. I recommend  16 bit mono, 22050Hz 10 seconds long wav without noises and music. Use audacity to edit.
+- Put new videos into `\SillyTavern-extras\modules\wav2lip\input\`. I recommend 300x400 25 fps 1 minute long, don't put high res vids, they use A LOT of vram. One video into one folder. Folder name should be the same as desired xtts voice name and a char name in talk-llama-wav2lip.bat. E.g. Anna.wav and \Anna\youtube_ann_300x400.mp4 for character with the name Anna. With `--multi-chars` param talk-llama will pass name of the new character to xtts even if this character is not defined in bat or start prompt. If xtts won't find that voice it will use default voice. If wav2lip won't find that video it will use default video.
 - For better Russian in XTTS check my finetune: https://huggingface.co/Ftfyhh/xttsv2_banana But it is not for streaming (hallucinates at short replies). Use with default xtts in silly tavern.
 
 #### Optional, better coma handling for xtts - only for xtts audio without wav2lip video
@@ -186,14 +189,13 @@ Full list of commands and variations is in `talk-llama.cpp`, search `user_comman
 
 ## Known bugs
 - `Reset` voice command won't work nice if current context length is over --ctx_size
-- GGML_ASSERT: n_tokens <= n_batch - start prompt in assistant.txt should be < 1024 tokens. 
+- GGML_ASSERT: n_tokens <= n_batch - start prompt in assistant.txt should be < 1024 tokens. (lcparams.n_batch  = 1024; in cpp code, default was 512)
 - Rope context - is not implemented. Use context shifting (enabled by default).
 - sometimes whisper is hallucinating, need to put hallucinations into stop-words. Check `misheard text` in `talk-llama.cpp`
 - don't put cyrillic (Russian) letters for characters or paths in .bat files, they may not work nice because of weird encoding. Use `cmd` instead if you need to use cyrillic letters.
-- During first run wav2lip will download it's checkpoint. If there are more than 1 concurrent thread - it will try to download it several times. You can kill and restart silly-tavern-extras if you see that it is downloading the same file several times or you can just wait.
-- During first run wav2lip will skip several first chunks of video.
-- During first run wav2lip with each newly added video will run face detection. It will take about 1 minute, but it happens just once and then it is saved to cache. And there is a bug with face detection wich slows down everything (memory leak). You need to restart Silly Tavern Extras after face detection is finished.
+- During first run wav2lip will run face detection with a newly added video. It will take about 30-60 s, but it happens just once and then it is saved to cache. And there is a bug with face detection wich slows down everything (memory leak). You need to restart Silly Tavern Extras after face detection is finished.
 - Sometimes wav2lip video window disappears but audio is still playing fine. If the video window doesn't come back automatically - restart Silly Tavern Extras.
+- if you restart xtts you need to restart silly-tavern-extras. Otherwise wav2lip will start playing wrong segments of already created videos.
 
 ## Contacts
 Reddit: https://www.reddit.com/user/tensorbanana

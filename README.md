@@ -20,6 +20,7 @@ English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 - langchain google-serper
 
 ## News
+- [2024.04.05] v0.1.1. bug fixes with paths and dependensies of xtts-api-server
 - [2024.04.04] v0.1.0. Added streaming wav2lip. With super low latency: from user speech to video it's just 1.5 seconds! Had to rewrite sillyTavern-extras, wav2lip, xtts-api-server, tts (all forked to my github). Streaming wav2lip can be used in SillyTavern. Setup guide and video are coming in a next few days. 
 - [2024.03.10] Updated [xtts patcher](https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server). Now if requested voice doesn't exist, xtts will play first found voice, instead of an error.
 - [2024.03.09] v0.0.4. New params: `--stop-words` (list for llama separated by semicolon: `;`), `--min-tokens` (min tokens to output), `--split-after` (split first sentence after N tokens for xtts), `--seqrep` (detect loops: 20 symbols in 300 last symbols), `--xtts-intro` (echo random Umm/Well/...  to xtts right after user input). See [0.0.4](https://github.com/Mozer/talk-llama-fast/releases/tag/0.0.4) release for details.
@@ -54,7 +55,9 @@ English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 - Download latest [release](https://github.com/Mozer/talk-llama-fast/releases) in zip. Extract it's contents.
 - Download whisper model to folder with talk-llama.exe: [for English](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin) or [for Russian](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin) (or even ggml-large-v3-q5_0.bin it is larger but better). You can try small-q5 if you don't have much VRAM.
 - Download LLM to same folder [mistral-7b-instruct-v0.2.Q5_0](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q5_0.gguf), you can try q4_K_S or q3 if you don't have much VRAM.
-- Now let's install my modified sillyTavern-extras, wav2lip, xtts-api-server, tts (all from my github). Note: if you have original version of TTS package and want it to stay, then you have to activate conda, miniconda or venv, it is safe. xtts-api-server uses some specific version of torch==2.1.1 and transformers==4.36.2, it might brake something else. I don't use conda, so we will rewrite everything, and wish us luck. Inside the directory where you extracted talk-llama-fast-v0.1.0.zip and where talk-llama.exe is located run a cmd:
+- Now let's install my modified sillyTavern-extras, wav2lip, xtts-api-server, tts (all from my github). Note: if you have original version of xtts-api-server and TTS packages and want it to stay, then you have to activate conda, miniconda or venv, it is safe. xtts-api-server uses some specific version of torch==2.1.1 and transformers==4.36.2, it might brake something else. I don't use conda, so we will rewrite everything, and wish us luck. My modifed xtts-api-server and tts are NOW put into requirements of SillyTavern-extras. And they will overwrite existing packages if installed.
+
+Inside the directory where you extracted talk-llama-fast-v0.1.x.zip and where talk-llama.exe is located run a cmd:
 ```
 git clone https://github.com/Mozer/SillyTavern-Extras
 cd SillyTavern-extras
@@ -62,13 +65,6 @@ pip install -r requirements.txt
 cd modules
 git clone https://github.com/Mozer/wav2lip
 cd wav2lip
-pip install -r requirements.txt
-cd ..
-cd ..
-cd ..
-cd xtts
-git clone https://github.com/Mozer/xtts-api-server
-cd xtts-api-server 
 pip install -r requirements.txt
 ```
 - if there are some errors with xtts-api-server installation, check manual (not mine): https://github.com/daswer123/xtts-api-server?tab=readme-ov-file#installation Or another manual, if the first doesn't work: https://docs.sillytavern.app/extras/extensions/xtts/ I remember that when I first installed xtts-api-server it asked to install some full version of visual-cpp-build-tools. The default download page from MS wasn't working for me, so i had to google and found it elsewhere (maybe it was VC_redist.x86.exe). Open a PR if you know which version of visual-cpp-build-tools is working for you.

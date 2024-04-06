@@ -55,10 +55,29 @@ English video, v0.0.2, without wav2lip: https://www.youtube.com/watch?v=N3Eoc6M3
 - Download latest [release](https://github.com/Mozer/talk-llama-fast/releases) in zip. Extract it's contents.
 - Download whisper model to folder with talk-llama.exe: [for English](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin) or [for Russian](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin) (or even ggml-large-v3-q5_0.bin it is larger but better). You can try small-q5 if you don't have much VRAM.
 - Download LLM to same folder [mistral-7b-instruct-v0.2.Q5_0](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q5_0.gguf), you can try q4_K_S or q3 if you don't have much VRAM.
-- Now let's install my modified sillyTavern-extras, wav2lip, xtts-api-server, tts (all from my github). Note: if you have original version of xtts-api-server and TTS packages and want it to stay, then you have to activate conda, miniconda or venv, it is safe. xtts-api-server uses some specific version of torch==2.1.1 and transformers==4.36.2, it might brake something else. I don't use conda, so we will rewrite everything, and wish us luck. My modifed xtts-api-server and tts are NOW put into requirements of SillyTavern-extras. And they will overwrite existing packages if installed.
+- Now let's install my modified sillyTavern-extras, wav2lip, xtts-api-server, tts (all from my github). But xtts-api-server conflicts with SillyTavern-Extras. Before that i was able to run them both in 3.11, but users reported several problems trying to install xtts-api-server with SillyTavern-Extras without conda. So now we will install everything with 2 different conda environments. It has 2 parts: for xtts and for SillyTavern-Extras. If you know how to install everything in 1 conda environment step by step - open a PR.
 
-Inside the directory where you extracted talk-llama-fast-v0.1.x.zip and where talk-llama.exe is located run a cmd:
+install latest version of miniconda https://docs.anaconda.com/free/miniconda/
+
+create folder xtts. Open a cmd inside this folder
 ```
+conda create -n xtts
+conda activate xtts
+conda install python=3.11
+
+pip install platformdirs==3.9.1
+pip install git+https://github.com/Mozer/xtts-api-server pydub
+pip install torch==2.1.1+cu118 torchaudio==2.1.1+cu118 --index-url https://download.pytorch.org/whl/cu118
+pip install git+https://github.com/Mozer/tts
+conda deactivate
+```
+- if there are some errors with xtts-api-server installation, check manual (not mine): https://github.com/daswer123/xtts-api-server?tab=readme-ov-file#installation Or another manual (didn't work for me) https://docs.sillytavern.app/extras/extensions/xtts/ I remember that when I first installed xtts-api-server it asked to install some full version of visual-cpp-build-tools. The default download page from MS wasn't working for me, so i had to google and found it elsewhere (maybe it was [VC_redist.x86.exe](https://learn.microsoft.com/ru-ru/cpp/windows/latest-supported-vc-redist?view=msvc-170)). Open a PR if you know which version of visual-cpp-build-tools is working for you.
+```
+conda create -n extras
+conda activate extras
+conda install python=3.11
+conda install git
+
 git clone https://github.com/Mozer/SillyTavern-Extras
 cd SillyTavern-extras
 pip install -r requirements.txt
@@ -67,8 +86,9 @@ git clone https://github.com/Mozer/wav2lip
 cd wav2lip
 pip install -r requirements.txt
 ```
-- if there are some errors with xtts-api-server installation, check manual (not mine): https://github.com/daswer123/xtts-api-server?tab=readme-ov-file#installation Or another manual, if the first doesn't work: https://docs.sillytavern.app/extras/extensions/xtts/ I remember that when I first installed xtts-api-server it asked to install some full version of visual-cpp-build-tools. The default download page from MS wasn't working for me, so i had to google and found it elsewhere (maybe it was VC_redist.x86.exe). Open a PR if you know which version of visual-cpp-build-tools is working for you.
-- Notice: that \wav2lip\ was installed inside \SillyTavern-extras\modules\ folder. That's important. My tts is installed automatically (i hope so) from xtts-api-server requirements.txt
+
+- Notice: that \wav2lip\ was installed inside \SillyTavern-extras\modules\ folder. That's important.
+- I updated xtts bats and silly-tavern extras bat. Now they have conda activate command.
 - Edit xtts_wav2lip.bat, change `--output` from c:\\DATA\\LLM\\SillyTavern-Extras\\tts_out\\ to actual path where your \SillyTavern-Extras\tts_out\ dir is located.
 - Optional: edit talk-llama-wav2lip.bat, change params if needed (params description is below).
 - Install ffmpeg, put into your PATH environment (info: https://phoenixnap.com/kb/ffmpeg-windows). Then download h264 codec .dll of required version from https://github.com/cisco/openh264/releases and put to /system32 or /ffmpeg/bin dir. In my case for Windows 11 it was openh264-1.8.0-win64.dll. Wav2lip will work without this dll but will print an error.

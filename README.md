@@ -2,9 +2,9 @@
 
 based on talk-llama https://github.com/ggerganov/whisper.cpp
 
-English video, v0.0.2: https://www.youtube.com/watch?v=N3Eoc6M3Erg
+English video, v0.0.2, without wav2lip: https://www.youtube.com/watch?v=N3Eoc6M3Erg
 
-Видео на русском, v0.0.3: https://www.youtube.com/watch?v=JOoVdHZNCcE
+[fresh] Видео на русском с wav2lip, v0.1.0: https://youtu.be/ciyEsZpzbM8
 
 ## I added:
 - XTTSv2 support

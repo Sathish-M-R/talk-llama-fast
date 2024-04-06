@@ -20,7 +20,7 @@ English video, v0.0.2, without wav2lip: https://www.youtube.com/watch?v=N3Eoc6M3
 - langchain google-serper
 
 ## News
-- [2024.04.05] v0.1.1. bug fixes with paths and dependensies of xtts-api-server
+- [2024.04.05] v0.1.2. Now everything is installed into 2 separate condas. Redownload zip, follow instructions below.
 - [2024.04.04] v0.1.0. Added streaming wav2lip. With super low latency: from user speech to video it's just 1.5 seconds! Had to rewrite sillyTavern-extras, wav2lip, xtts-api-server, tts (all forked to my github). Streaming wav2lip can be used in SillyTavern. Setup guide and video are coming in a next few days. 
 - [2024.03.10] Updated [xtts patcher](https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server). Now if requested voice doesn't exist, xtts will play first found voice, instead of an error.
 - [2024.03.09] v0.0.4. New params: `--stop-words` (list for llama separated by semicolon: `;`), `--min-tokens` (min tokens to output), `--split-after` (split first sentence after N tokens for xtts), `--seqrep` (detect loops: 20 symbols in 300 last symbols), `--xtts-intro` (echo random Umm/Well/...  to xtts right after user input). See [0.0.4](https://github.com/Mozer/talk-llama-fast/releases/tag/0.0.4) release for details.

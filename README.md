@@ -208,7 +208,7 @@ Full list of commands and variations is in `talk-llama.cpp`, search `user_comman
 - Сall NAME (позови Алису)
 
 ## Known bugs
-- if you have missing cuda .dll errors - see this [PR](https://github.com/Mozer/talk-llama-fast/issues/5)
+- if you have missing cuda .dll errors - see this [issue](https://github.com/Mozer/talk-llama-fast/issues/5)
 - `Reset` voice command won't work nice if current context length is over --ctx_size
 - GGML_ASSERT: n_tokens <= n_batch - start prompt in assistant.txt should be < 1024 tokens. (lcparams.n_batch  = 1024; in cpp code, default was 512)
 - Rope context - is not implemented. Use context shifting (enabled by default).

@@ -91,7 +91,7 @@ pip install -r requirements.txt
 
 - Notice: that \wav2lip\ was installed inside \SillyTavern-extras\modules\ folder. That's important.
 - I updated xtts bats and silly-tavern extras bat. Now they have conda activate command.
-- Edit xtts_wav2lip.bat, change `--output` from c:\\DATA\\LLM\\SillyTavern-Extras\\tts_out\\ to actual path where your \SillyTavern-Extras\tts_out\ dir is located.
+- Edit xtts_wav2lip.bat, change `--output` from c:\\DATA\\LLM\\SillyTavern-Extras\\tts_out\\ to actual path where your \\SillyTavern-Extras\\tts_out\\ dir is located. Don't forget the trailing slashes here.
 - Optional: edit talk-llama-wav2lip.bat, change params if needed (params description is below).
 - Install ffmpeg, put into your PATH environment (info: https://phoenixnap.com/kb/ffmpeg-windows). Then download h264 codec .dll of required version from https://github.com/cisco/openh264/releases and put to /system32 or /ffmpeg/bin dir. In my case for Windows 11 it was openh264-1.8.0-win64.dll. Wav2lip will work without this dll but will print an error.
 - UPD: In \SillyTavern-extras\modules\wav2lip\server_wav2lip.py at line 29 change `xtts_play_allowed_path = "c:\\DATA\\LLM\\xtts\\xtts_play_allowed.txt"` to your actual path to this file. This txt file is located where you extracted the talk-llama-fast-v0.1.x.zip in \xtts\ folder. I will move this to .bat params later.
@@ -209,6 +209,7 @@ Full list of commands and variations is in `talk-llama.cpp`, search `user_comman
 
 ## Known bugs
 - if you have missing cuda .dll errors - see this [issue](https://github.com/Mozer/talk-llama-fast/issues/5)
+- if whisper doesn't hear your voice - see this [issue](https://github.com/Mozer/talk-llama-fast/issues/5)
 - `Reset` voice command won't work nice if current context length is over --ctx_size
 - GGML_ASSERT: n_tokens <= n_batch - start prompt in assistant.txt should be < 1024 tokens. (lcparams.n_batch  = 1024; in cpp code, default was 512)
 - Rope context - is not implemented. Use context shifting (enabled by default).

@@ -20,6 +20,7 @@ English video, v0.0.2, without wav2lip: https://www.youtube.com/watch?v=N3Eoc6M3
 - langchain google-serper
 
 ## News
+- [2024.04.06] v0.1.3. Removed --xtts-control-path param. No other changes. To make this version work - please update (git pull) xtts_api_server, tts, and wav2lip if you have older versions.
 - [2024.04.05] v0.1.2. Now everything is installed into 2 separate condas. Redownload zip, follow instructions below.
 - [2024.04.04] v0.1.0. Added streaming wav2lip. With super low latency: from user speech to video it's just 1.5 seconds! Had to rewrite sillyTavern-extras, wav2lip, xtts-api-server, tts (all forked to my github). Streaming wav2lip can be used in SillyTavern. Setup guide and video are coming in a next few days. 
 - [2024.03.10] Updated [xtts patcher](https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server). Now if requested voice doesn't exist, xtts will play first found voice, instead of an error.
@@ -90,11 +91,10 @@ pip install -r requirements.txt
 ```
 
 - Notice: that \wav2lip\ was installed inside \SillyTavern-extras\modules\ folder. That's important.
-- I updated xtts bats and silly-tavern extras bat. Now they have conda activate command.
 - Edit xtts_wav2lip.bat, change `--output` from c:\\DATA\\LLM\\SillyTavern-Extras\\tts_out\\ to actual path where your \\SillyTavern-Extras\\tts_out\\ dir is located. Don't forget the trailing slashes here.
 - Optional: edit talk-llama-wav2lip.bat, change params if needed (params description is below).
 - Install ffmpeg, put into your PATH environment (info: https://phoenixnap.com/kb/ffmpeg-windows). Then download h264 codec .dll of required version from https://github.com/cisco/openh264/releases and put to /system32 or /ffmpeg/bin dir. In my case for Windows 11 it was openh264-1.8.0-win64.dll. Wav2lip will work without this dll but will print an error.
-- UPD: In \SillyTavern-extras\modules\wav2lip\server_wav2lip.py at line 29 change `xtts_play_allowed_path = "c:\\DATA\\LLM\\xtts\\xtts_play_allowed.txt"` to your actual path to this file. This txt file is located where you extracted the talk-llama-fast-v0.1.x.zip in \xtts\ folder. I will move this to .bat params later.
+
 
 ## Running
 - In /SillyTavern-extras/ run `silly_extras.bat`. Wait until it downloads wav2lip checkpoint and makes face detection for new video if needed.

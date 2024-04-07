@@ -52,6 +52,7 @@ English video, v0.0.2, without wav2lip: https://www.youtube.com/watch?v=N3Eoc6M3
 
 ## Installation
 ### For Windows 10/11 x64 with CUDA.
+- Check that you have Cuda Toolkit. If not install: https://developer.nvidia.com/cuda-downloads
 - Download latest [release](https://github.com/Mozer/talk-llama-fast/releases) in zip. Extract it's contents.
 - Download whisper model to folder with talk-llama.exe: [for English](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin) or [for Russian](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin) (or even ggml-large-v3-q5_0.bin it is larger but better). You can try small-q5 if you don't have much VRAM.
 - Download LLM to same folder [mistral-7b-instruct-v0.2.Q5_0](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q5_0.gguf), you can try q4_K_S or q3 if you don't have much VRAM.
@@ -207,6 +208,7 @@ Full list of commands and variations is in `talk-llama.cpp`, search `user_comman
 - Сall NAME (позови Алису)
 
 ## Known bugs
+- if you have missing cuda .dll errors - see this [PR](https://github.com/Mozer/talk-llama-fast/issues/5)
 - `Reset` voice command won't work nice if current context length is over --ctx_size
 - GGML_ASSERT: n_tokens <= n_batch - start prompt in assistant.txt should be < 1024 tokens. (lcparams.n_batch  = 1024; in cpp code, default was 512)
 - Rope context - is not implemented. Use context shifting (enabled by default).

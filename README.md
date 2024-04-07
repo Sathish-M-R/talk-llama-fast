@@ -55,7 +55,7 @@ English video, v0.0.2, without wav2lip: https://www.youtube.com/watch?v=N3Eoc6M3
 - Download latest [release](https://github.com/Mozer/talk-llama-fast/releases) in zip. Extract it's contents.
 - Download whisper model to folder with talk-llama.exe: [for English](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin) or [for Russian](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin) (or even ggml-large-v3-q5_0.bin it is larger but better). You can try small-q5 if you don't have much VRAM.
 - Download LLM to same folder [mistral-7b-instruct-v0.2.Q5_0](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q5_0.gguf), you can try q4_K_S or q3 if you don't have much VRAM.
-- Now let's install my modified sillyTavern-extras, wav2lip, xtts-api-server, tts (all from my github). But xtts-api-server conflicts with SillyTavern-Extras. Before that i was able to run them both in 3.11, but users reported several problems trying to install xtts-api-server with SillyTavern-Extras without conda. So now we will install everything with 2 different conda environments. It has 2 parts: for xtts and for SillyTavern-Extras. If you know how to install everything in 1 conda environment step by step - open a PR.
+- Now let's install my modified sillyTavern-extras, wav2lip, xtts-api-server, tts (all from my github). Note: xtts-api-server conflicts with SillyTavern-Extras (xtts deepspeed needs torch 2.1 but some package in extras (torchvision 0.17.2) needs torch 2.2). Before that i was able to run them both in 3.11, but users reported several problems trying to install xtts-api-server together with SillyTavern-Extras without conda. So now we will install everything with 2 different conda environments with different torches. It has 2 parts: for xtts and for SillyTavern-Extras. If you know how to install everything in 1 conda environment step by step - open a PR.
 
 install latest version of miniconda https://docs.anaconda.com/free/miniconda/
 
@@ -65,13 +65,12 @@ conda create -n xtts
 conda activate xtts
 conda install python=3.11
 
-pip install platformdirs==3.9.1
 pip install git+https://github.com/Mozer/xtts-api-server pydub
 pip install torch==2.1.1+cu118 torchaudio==2.1.1+cu118 --index-url https://download.pytorch.org/whl/cu118
 pip install git+https://github.com/Mozer/tts
 conda deactivate
 ```
-- if there are some errors with xtts-api-server installation, check manual (not mine): https://github.com/daswer123/xtts-api-server?tab=readme-ov-file#installation Or another manual (didn't work for me) https://docs.sillytavern.app/extras/extensions/xtts/ I remember that when I first installed xtts-api-server it asked to install some full version of visual-cpp-build-tools. The default download page from MS wasn't working for me, so i had to google and found it elsewhere (maybe it was [VC_redist.x86.exe](https://learn.microsoft.com/ru-ru/cpp/windows/latest-supported-vc-redist?view=msvc-170)). Open a PR if you know which version of visual-cpp-build-tools is working for you.
+- if there are some errors with xtts-api-server installation, check manuals (not mine, they install original xtts, not modified): https://github.com/daswer123/xtts-api-server?tab=readme-ov-file#installation Or another manual (didn't work for me) https://docs.sillytavern.app/extras/extensions/xtts/ I remember that when I first installed xtts-api-server it asked to install some full version of visual-cpp-build-tools. The default download page from MS wasn't working for me, so i had to google and found it elsewhere (maybe it was [VC_redist.x86.exe](https://learn.microsoft.com/ru-ru/cpp/windows/latest-supported-vc-redist?view=msvc-170)). Open a PR if you know which version of visual-cpp-build-tools is working for you.
 
 - In the same dir where you are now, create second conda for extras
 ```

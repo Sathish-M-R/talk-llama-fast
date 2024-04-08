@@ -20,7 +20,7 @@ English video, v0.0.2, without wav2lip: https://www.youtube.com/watch?v=N3Eoc6M3
 - langchain google-serper
 
 ## News
-- [2024.04.06] v0.1.3. Removed --xtts-control-path param. No other changes. To make this version work - please update (git pull) xtts_api_server, tts, and wav2lip if you have older versions.
+- [2024.04.06] v0.1.3. Removed --xtts-control-path param. No other changes. To make this version work - please update (pip install) my xtts_api_server, tts, and wav2lip if you have previous versions installed.
 - [2024.04.05] v0.1.2. Now everything is installed into 2 separate condas. Redownload zip, follow instructions below.
 - [2024.04.04] v0.1.0. Added streaming wav2lip. With super low latency: from user speech to video it's just 1.5 seconds! Had to rewrite sillyTavern-extras, wav2lip, xtts-api-server, tts (all forked to my github). Streaming wav2lip can be used in SillyTavern. Setup guide and video are coming in a next few days. 
 - [2024.03.10] Updated [xtts patcher](https://github.com/Mozer/talk-llama-fast/tree/master/xtts/xtts_api_server). Now if requested voice doesn't exist, xtts will play first found voice, instead of an error.
@@ -57,7 +57,7 @@ English video, v0.0.2, without wav2lip: https://www.youtube.com/watch?v=N3Eoc6M3
 - Download latest [release](https://github.com/Mozer/talk-llama-fast/releases) in zip. Extract it's contents.
 - Download whisper model to folder with talk-llama.exe: [for English](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium.en-q5_0.bin) or [for Russian](https://huggingface.co/ggerganov/whisper.cpp/blob/main/ggml-medium-q5_0.bin) (or even ggml-large-v3-q5_0.bin it is larger but better). You can try small-q5 if you don't have much VRAM.
 - Download LLM to same folder [mistral-7b-instruct-v0.2.Q5_0](https://huggingface.co/TheBloke/Mistral-7B-Instruct-v0.2-GGUF/blob/main/mistral-7b-instruct-v0.2.Q5_0.gguf), you can try q4_K_S or q3 if you don't have much VRAM.
-- Now let's install my modified sillyTavern-extras, wav2lip, xtts-api-server, tts (all from my github). Note: xtts-api-server conflicts with SillyTavern-Extras (xtts deepspeed needs torch 2.1 but some package in extras (torchvision 0.17.2) needs torch 2.2). Before that i was able to run them both in 3.11, but users reported several problems trying to install xtts-api-server together with SillyTavern-Extras without conda. So now we will install everything with 2 different conda environments with different torches. It has 2 parts: for xtts and for SillyTavern-Extras. If you know how to install everything in 1 conda environment step by step - open a PR.
+- Now let's install my modified sillyTavern-extras, wav2lip, xtts-api-server, tts (all from my github). Note: xtts-api-server conflicts with SillyTavern-Extras (xtts deepspeed needs torch 2.1 but some package in extras (torchvision 0.17.2) needs torch 2.2). Before that i was able to run them both in 3.11, but users reported several problems trying to install xtts-api-server together with SillyTavern-Extras without conda. So now we will install everything with 2 different conda environments with different torches (7 GB for each conda, i know it is big). It has 2 parts: for xtts and for SillyTavern-Extras. If you know how to install everything in 1 conda environment step by step - open a PR.
 
 install latest version of miniconda https://docs.anaconda.com/free/miniconda/
 
@@ -88,6 +88,7 @@ cd modules
 git clone https://github.com/Mozer/wav2lip
 cd wav2lip
 pip install -r requirements.txt
+conda deactivate
 ```
 
 - Notice: that \wav2lip\ was installed inside \SillyTavern-extras\modules\ folder. That's important.
@@ -185,7 +186,7 @@ del build\bin\Release\talk-llama.exe & cmake.exe --build build --config release
   --repeat_last_n N          [256    ] repeat_last_n
   --xtts-voice NAME          [emma_1 ] xtts voice without .wav
   --xtts-url TEXT            [http://localhost:8020/] xtts/silero server URL, with trailing slash
-  --xtts-control-path FNAME  [c:\DATA\LLM\xtts\xtts_play_allowed.txt] path to xtts_play_allowed.txt
+  --xtts-control-path FNAME  [       ] not used anymore 
   --xtts-intro               [false  ] xtts instant short random intro like Hmmm.
   --sleep-before-xtts        [0      ] sleep llama inference before xtts, ms.
   --google-url TEXT          [http://localhost:8003/] langchain google-serper server URL, with /
